@@ -167,10 +167,20 @@
                         <p style="color: var(--text-secondary); margin-bottom: 2rem;">Strategic advisory is offered separately via Bridge City Advisory. Use the form for GTM systems architecture inquiries.</p>
                     </div>
                     <form action="https://formspree.io/f/xojjvykw" method="POST">
-                        <input type="text" name="name" required placeholder="Full Name">
-                        <input type="email" name="email" required placeholder="Work Email">
-                        <textarea name="message" rows="2" required placeholder="Describe your current systems bottleneck..."></textarea>
-                        <button type="submit">Submit Inquiry</button>
+                        <input type="hidden" name="_next" value="https://llamapapa.github.io/Aida-Advisors/thanks.html">
+                        <label>
+    Name
+    <input type="text" name="name" placeholder="Name" required>
+</label>
+<label>
+    Email
+    <input type="email" name="email" placeholder="email@company.com" required>
+</label>
+<label>
+    Message
+    <textarea name="message" rows="5" placeholder="How can we help?" required></textarea>
+</label>
+<button type="submit">Send Inquiry</button>
                     </form>
                 </div>
             </section>
