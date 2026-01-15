@@ -3,136 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aida Advisors | GTM Systems & Sales Operations</title>
+    <title>Aida Advisors | GTM Architecture & AI Strategy</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #000000;
-            --accent: #2d3436;
-            --pico-font-family: "Inter", sans-serif;
-            --pico-border-radius: 4px;
+            --bg: #0a0908;
+            --text-primary: #e8e6e3;
+            --text-secondary: #9c9a96;
+            --accent: #d4cfc9;
+            --border: #262524;
+            --font-heading: 'Cormorant Garamond', serif;
+            --font-body: 'Inter', sans-serif;
+            --font-tech: 'JetBrains Mono', monospace;
         }
 
-        body { padding: 0; line-height: 1.6; background-color: #fdfdfd; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            padding: 0 5vw;
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; }
+        header { padding: 4rem 0; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--border); }
+        .logo { font-family: var(--font-heading); font-weight: 700; font-size: 1.6rem; color: var(--accent); text-transform: lowercase; }
+        .meta { font-family: var(--font-tech); font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.15em; }
+
+        .hero { padding: 8rem 0 6rem; }
+        h1 { font-family: var(--font-heading); font-size: clamp(3rem, 8vw, 5.5rem); line-height: 1.05; font-weight: 400; margin-bottom: 2.5rem; color: var(--accent); letter-spacing: -0.02em; }
+        .hero p { font-size: 1.4rem; color: var(--text-secondary); max-width: 600px; font-weight: 300; line-height: 1.5; }
+
+        section { padding: 8rem 0; border-top: 1px solid var(--border); }
+        .section-label { font-family: var(--font-tech); font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 3rem; display: block; }
         
-        .container-fluid { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem; }
+        h2 { font-family: var(--font-heading); font-size: 2.8rem; margin-bottom: 3rem; font-weight: 400; color: var(--accent); }
 
-        /* Header / Hero */
-        header { margin-bottom: 6rem; border-bottom: 1px solid #eee; padding-bottom: 4rem; }
-        h2.brand { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3em; margin-bottom: 2rem; color: var(--accent); }
-        h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 2rem; }
-        .hero-subtext { font-size: 1.4rem; max-width: 35ch; color: #444; font-weight: 400; }
+        /* THE FRAMEWORK GRID */
+        .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; }
+        .method-step h4 { font-family: var(--font-tech); font-size: 0.8rem; margin-bottom: 1rem; color: var(--accent); }
+        .method-step h3 { font-size: 1.2rem; margin-bottom: 1rem; }
+        .method-step p { font-size: 0.9rem; color: var(--text-secondary); }
 
-        /* Services Grid */
-        .grid-section { margin-bottom: 6rem; }
-        article { 
-            background: white; 
-            border: 1px solid #eaeaea; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.02); 
-            transition: transform 0.2s ease;
-            height: 100%;
-        }
-        article:hover { transform: translateY(-5px); border-color: #000; }
-        article h3 { font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.5rem; }
-        article ul { padding-left: 1rem; }
-        article li { font-size: 0.95rem; margin-bottom: 0.5rem; color: #555; }
+        /* TRUST / DATA SOVEREIGNTY */
+        .trust-banner { background: #121110; padding: 4rem; border: 1px solid var(--border); }
+        .trust-banner h3 { font-family: var(--font-heading); font-size: 2rem; margin-bottom: 1.5rem; }
+        .trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
+        .trust-item strong { display: block; color: var(--accent); margin-bottom: 0.5rem; }
+        .trust-item p { font-size: 0.85rem; color: var(--text-secondary); }
 
-        /* Engagement Section */
-        .engagement { background: #111; color: white; padding: 4rem; border-radius: 8px; margin-bottom: 6rem; }
-        .engagement h3 { color: white; text-decoration: none; border-bottom: 1px solid #333; padding-bottom: 1rem; }
+        /* CAPABILITIES */
+        .cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+        .cap-item h3 { font-family: var(--font-heading); font-size: 1.8rem; margin-bottom: 1.5rem; }
+        .cap-item ul { list-style: none; }
+        .cap-item li { margin-bottom: 1rem; color: var(--text-secondary); display: flex; align-items: flex-start; }
+        .cap-item li::before { content: "→"; margin-right: 1rem; color: var(--accent); font-family: var(--font-tech); }
 
-        /* Form Styling */
-        .contact-section { max-width: 700px; margin: 0 auto; }
-        input, textarea { border: 1px solid #ddd !important; padding: 1rem !important; margin-bottom: 1.5rem !important; }
-        input:focus { border-color: #000 !important; }
-        button[type="submit"] { background: #000; border: none; font-weight: 700; padding: 1rem 4rem; width: 100%; }
+        /* FORM */
+        .contact-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+        input, textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); padding: 1.5rem 0; font-family: var(--font-body); font-size: 1rem; color: var(--text-primary); margin-bottom: 2rem; transition: 0.3s; }
+        input:focus, textarea:focus { outline: none; border-bottom-color: var(--accent); }
+        button { background: var(--accent); color: var(--bg); border: none; padding: 1.2rem 3rem; font-family: var(--font-tech); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 700; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.85; }
 
-        footer { text-align: center; font-size: 0.75rem; color: #999; margin-top: 6rem; padding: 4rem 0; border-top: 1px solid #eee; }
+        footer { padding: 4rem 0; border-top: 1px solid var(--border); font-family: var(--font-tech); font-size: 0.65rem; color: var(--text-secondary); display: flex; justify-content: space-between; }
 
-        @media (max-width: 768px) {
-            .container-fluid { padding: 2rem 1.5rem; }
-            h1 { font-size: 3rem; }
-            .engagement { padding: 2rem; }
-        }
+        @media (max-width: 768px) { .cap-grid, .contact-wrap { grid-template-columns: 1fr; } h2 { font-size: 2.2rem; } .trust-banner { padding: 2rem; } }
     </style>
 </head>
 <body>
-
-    <div class="container-fluid">
+    <div class="container">
         <header>
-            <h2 class="brand">Aida Advisors</h2>
-            <h1>GTM Systems <br>& Sales Ops</h1>
-            <p class="hero-subtext">Architecting scalable systems and tech frameworks for high-growth revenue teams.</p>
+            <div class="logo">aida advisors.</div>
+            <div class="meta">systems design // ai strategy</div>
         </header>
 
         <main>
-            <div class="grid">
-                <article>
-                    <h3>GTM Systems Design</h3>
-                    <p>Structuring your revenue engine for scale:</p>
-                    <ul>
-                        <li>Market and ICP definition</li>
-                        <li>Buyer segmentation logic</li>
-                        <li>Operational workflows</li>
-                        <li>RevOps visibility</li>
-                        <li>Toolstack alignment</li>
-                    </ul>
-                </article>
-
-                <article>
-                    <h3>Applied AI Advisory</h3>
-                    <p>Responsible AI implementation strategy:</p>
-                    <ul>
-                        <li>AI-assisted research workflows</li>
-                        <li>Process automation</li>
-                        <li>Internal AI tool design</li>
-                        <li>Security and audit guidance</li>
-                    </ul>
-                </article>
-            </div>
-
-            <section class="engagement">
-                <h3>Engagement Model</h3>
-                <p>We clarify strategy and architect internal workflows. Most engagements begin with a diagnostic audit and expand as your needs grow.</p>
+            <section class="hero" style="border-top: none;">
+                <h1>Revenue is a system.<br>Architect it.</h1>
+                <p>We design high-performance go-to-market technology frameworks and internal automation for revenue organizations.</p>
             </section>
 
-            <section class="contact-section">
-                <h3 style="text-align: center; margin-bottom: 3rem;">Start a Conversation</h3>
-                <form action="https://formspree.io/f/xojjvykw" method="POST">
-                    <input type="hidden" name="_next" value="https://llamapapa.github.io/Aida-Advisors/thanks.html">
-                    
-                    <div class="grid">
-                        <label>
-                            Name
-                            <input type="text" name="name" placeholder="Name" required>
-                        </label>
-                        <label>
-                            Email
-                            <input type="email" name="email" placeholder="email@company.com" required>
-                        </label>
+            <section id="methodology">
+                <span class="section-label">01 / The Framework</span>
+                <h2>The Engineering Cycle</h2>
+                <div class="method-grid">
+                    <div class="method-step">
+                        <h4>Phase I</h4>
+                        <h3>Diagnostic Audit</h3>
+                        <p>Mapping existing data flows and identifying structural friction in the revenue funnel.</p>
                     </div>
-                    
-                    <label>
-                        Message
-                        <textarea rows="5" name="message" placeholder="How can we help?" required></textarea>
-                    </label>
-                    
-                    <button type="submit">Send Inquiry</button>
-                    <p style="font-size: 0.75rem; color: #888; margin-top: 1rem; text-align: center;">
-                        Strategic advisory is offered separately via Bridge City Advisory.
-                    </p>
-                </form>
+                    <div class="method-step">
+                        <h4>Phase II</h4>
+                        <h3>Systems Architecture</h3>
+                        <p>Designing custom data pipelines, CRM logic, and LLM-integrated research agents.</p>
+                    </div>
+                    <div class="method-step">
+                        <h4>Phase III</h4>
+                        <h3>Operational Pilot</h3>
+                        <p>Deploying the pilot system with a small group of high-performance operators to prove ROI.</p>
+                    </div>
+                    <div class="method-step">
+                        <h4>Phase IV</h4>
+                        <h3>Hardened Scale</h3>
+                        <p>Full implementation, team enablement, and system hardening for predictable revenue.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="capabilities">
+                <span class="section-label">02 / Expertise</span>
+                <div class="cap-grid">
+                    <div class="cap-item">
+                        <h3>GTM Design</h3>
+                        <ul>
+                            <li>ICP & Market definition frameworks</li>
+                            <li>Buyer segmentation & Lead routing logic</li>
+                            <li>Operational RevOps visibility</li>
+                            <li>Sales process & Handoff automation</li>
+                        </ul>
+                    </div>
+                    <div class="cap-item">
+                        <h3>Applied AI</h3>
+                        <ul>
+                            <li>Agentic research & scoring workflows</li>
+                            <li>Multi-stage data normalization pipelines</li>
+                            <li>Secure internal AI tooling</li>
+                            <li>Revenue intelligence & Attribution systems</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="trust">
+                <div class="trust-banner">
+                    <h3>The Data Sovereignty Pledge</h3>
+                    <div class="trust-grid">
+                        <div class="trust-item">
+                            <strong>Zero Training</strong>
+                            <p>We never train AI models on client data or proprietary processes.</p>
+                        </div>
+                        <div class="trust-item">
+                            <strong>Absolute Privacy</strong>
+                            <p>We do not resell lead data or trade on client insights.</p>
+                        </div>
+                        <div class="trust-item">
+                            <strong>Secure Architecture</strong>
+                            <p>Every system is built to be auditable, secure, and fully owned by you.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="contact">
+                <span class="section-label">03 / Inquiry</span>
+                <div class="contact-wrap">
+                    <div>
+                        <h2>Ready to build?</h2>
+                        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Strategic advisory is offered separately via Bridge City Advisory. Use the form for GTM systems architecture inquiries.</p>
+                    </div>
+                    <form action="https://formspree.io/f/xojjvykw" method="POST">
+                        <input type="text" name="name" required placeholder="Full Name">
+                        <input type="email" name="email" required placeholder="Work Email">
+                        <textarea name="message" rows="2" required placeholder="Describe your current systems bottleneck..."></textarea>
+                        <button type="submit">Submit Inquiry</button>
+                    </form>
+                </div>
             </section>
         </main>
 
         <footer>
-            &copy; 2026 AIDA ADVISORS. ALL RIGHTS RESERVED.
+            <div>&copy; 2026 Aida Advisors</div>
+            <div>United States / Global Systems Support</div>
         </footer>
     </div>
-
 </body>
 </html>
