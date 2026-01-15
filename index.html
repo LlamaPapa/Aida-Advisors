@@ -1,239 +1,138 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aida Advisors | GTM Systems & Sales Operations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    
+    <style>
+        :root {
+            --primary: #000000;
+            --accent: #2d3436;
+            --pico-font-family: "Inter", sans-serif;
+            --pico-border-radius: 4px;
+        }
+
+        body { padding: 0; line-height: 1.6; background-color: #fdfdfd; }
+        
+        .container-fluid { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem; }
+
+        /* Header / Hero */
+        header { margin-bottom: 6rem; border-bottom: 1px solid #eee; padding-bottom: 4rem; }
+        h2.brand { font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3em; margin-bottom: 2rem; color: var(--accent); }
+        h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 2rem; }
+        .hero-subtext { font-size: 1.4rem; max-width: 35ch; color: #444; font-weight: 400; }
+
+        /* Services Grid */
+        .grid-section { margin-bottom: 6rem; }
+        article { 
+            background: white; 
+            border: 1px solid #eaeaea; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02); 
+            transition: transform 0.2s ease;
+            height: 100%;
+        }
+        article:hover { transform: translateY(-5px); border-color: #000; }
+        article h3 { font-size: 1.2rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1.5rem; }
+        article ul { padding-left: 1rem; }
+        article li { font-size: 0.95rem; margin-bottom: 0.5rem; color: #555; }
+
+        /* Engagement Section */
+        .engagement { background: #111; color: white; padding: 4rem; border-radius: 8px; margin-bottom: 6rem; }
+        .engagement h3 { color: white; text-decoration: none; border-bottom: 1px solid #333; padding-bottom: 1rem; }
+
+        /* Form Styling */
+        .contact-section { max-width: 700px; margin: 0 auto; }
+        input, textarea { border: 1px solid #ddd !important; padding: 1rem !important; margin-bottom: 1.5rem !important; }
+        input:focus { border-color: #000 !important; }
+        button[type="submit"] { background: #000; border: none; font-weight: 700; padding: 1rem 4rem; width: 100%; }
+
+        footer { text-align: center; font-size: 0.75rem; color: #999; margin-top: 6rem; padding: 4rem 0; border-top: 1px solid #eee; }
+
+        @media (max-width: 768px) {
+            .container-fluid { padding: 2rem 1.5rem; }
+            h1 { font-size: 3rem; }
+            .engagement { padding: 2rem; }
+        }
+    </style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Aida Advisors | GTM Systems&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* BASE STYLING - High-End Dark Mode */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>:root {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--bg: #050505;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--card-bg: #0a0a0a;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--text: #ffffff;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--muted: #888888;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--accent: #ffffff;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--border: #1a1a1a;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>--font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>* { box-sizing: border-box; margin: 0; padding: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>body {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-color: var(--bg);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: var(--text);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-family: var(--font-main);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>line-height: 1.6;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 0 5%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>overflow-x: hidden;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* LAYOUT CONTAINERS */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.container { max-width: 1100px; margin: 0 auto; }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>header {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 40px 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>justify-content: space-between;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>align-items: center;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.logo { font-weight: 700; letter-spacing: -1px; font-size: 1.2rem; text-transform: uppercase; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.tag { font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* HERO SECTION */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.hero { padding: 100px 0; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.hero h1 {<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: clamp(2.5rem, 8vw, 5rem);<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>line-height: 1;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 800;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>letter-spacing: -3px;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 30px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.hero p {<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1.25rem;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: var(--muted);<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>max-width: 600px;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 300;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* GRID SYSTEM */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.grid {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: grid;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));</p>
-<p class="p1"><span class="Apple-converted-space">            </span>gap: 1px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-color: var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 80px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-color: var(--bg);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 50px 30px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card-label { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 20px; text-transform: uppercase; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card h3 { font-size: 1.4rem; margin-bottom: 20px; font-weight: 600; }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card ul { list-style: none; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card li { font-size: 0.95rem; color: var(--muted); margin-bottom: 10px; display: flex; align-items: flex-start; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.card li::before { content: "→"; margin-right: 12px; color: #fff; font-family: var(--font-mono); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* FORM STYLING */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.contact-wrap {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: grid;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 100px 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>gap: 60px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-top: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.contact-info h2 { font-size: 2.5rem; letter-spacing: -1px; margin-bottom: 20px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.contact-info p { color: var(--muted); font-size: 0.9rem; max-width: 350px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>form { display: flex; flex-direction: column; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.form-group { margin-bottom: 30px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.form-group label { display: block; font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>input, textarea {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 100%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: transparent;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: none;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-bottom: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: var(--text);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 12px 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1rem;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>transition: all 0.3s;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>input:focus, textarea:focus { outline: none; border-bottom-color: #fff; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>button {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: #fff;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: #000;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: none;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 18px 35px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 700;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>text-transform: uppercase;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.75rem;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>letter-spacing: 1px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>cursor: pointer;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: fit-content;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>transition: transform 0.2s;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>button:hover { transform: scale(1.02); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>footer {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 60px 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-top: 1px solid var(--border);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>justify-content: space-between;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-family: var(--font-mono);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.6rem;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: var(--muted);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>text-transform: uppercase;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* MOBILE ADJUSTMENTS */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>@media (max-width: 768px) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>body { padding: 0 20px; }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>.hero { padding: 60px 0; }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>.contact-wrap { padding: 60px 0; }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>.hero h1 { font-size: 3rem; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="container"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;header&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="logo"&gt;Aida Advisors&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="tag"&gt;System Status: Active&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/header&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;main&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;section class="hero"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;h1&gt;Architecting Revenue Systems.&lt;/h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;p&gt;A go-to-market consultancy designing scalable technology frameworks and internal workflows for high-growth businesses.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="grid"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="card"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;span class="card-label"&gt;Capability 01&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3&gt;GTM Systems Design&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;ul&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;ICP definition frameworks&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Buyer segmentation logic&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Operational workflows&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;RevOps visibility&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Toolstack alignment&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/ul&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="card"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;span class="card-label"&gt;Capability 02&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3&gt;Applied AI Advisory&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;ul&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Research &amp; Analysis workflows&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;GTM process automation&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Internal AI tool design&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Secure AI implementation&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;li&gt;Auditable systems&lt;/li&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/ul&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="card"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;span class="card-label"&gt;Engagement&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h3&gt;The Model&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p style="font-size: 0.9rem; color: var(--muted);"&gt;Direct collaboration with founders to move from diagnostic design to scalable production systems. We architect, you execute.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;section class="contact-wrap"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="contact-info"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;h2&gt;Let's build.&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;p&gt;Strategic advisory is offered separately via Bridge City Advisory. Use the form to inquire about GTM systems design and AI operations.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;form action="https://formspree.io/f/xojjvykw" method="POST"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div class="form-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;label&gt;Name&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;input type="text" name="name" required placeholder="John Doe"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div class="form-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;label&gt;Work Email&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;input type="email" name="email" required placeholder="name@company.com"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;div class="form-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;label&gt;Message&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                            </span>&lt;textarea name="message" rows="1" required placeholder="How can we help?"&gt;&lt;/textarea&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                        </span>&lt;button type="submit"&gt;Send Inquiry&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>&lt;/form&gt;</p>
-<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;/section&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/main&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;footer&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;&amp;copy; 2026 Aida Advisors&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>&lt;div&gt;United States / Global&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/footer&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+
+    <div class="container-fluid">
+        <header>
+            <h2 class="brand">Aida Advisors</h2>
+            <h1>GTM Systems <br>& Sales Ops</h1>
+            <p class="hero-subtext">Architecting scalable systems and tech frameworks for high-growth revenue teams.</p>
+        </header>
+
+        <main>
+            <div class="grid">
+                <article>
+                    <h3>GTM Systems Design</h3>
+                    <p>Structuring your revenue engine for scale:</p>
+                    <ul>
+                        <li>Market and ICP definition</li>
+                        <li>Buyer segmentation logic</li>
+                        <li>Operational workflows</li>
+                        <li>RevOps visibility</li>
+                        <li>Toolstack alignment</li>
+                    </ul>
+                </article>
+
+                <article>
+                    <h3>Applied AI Advisory</h3>
+                    <p>Responsible AI implementation strategy:</p>
+                    <ul>
+                        <li>AI-assisted research workflows</li>
+                        <li>Process automation</li>
+                        <li>Internal AI tool design</li>
+                        <li>Security and audit guidance</li>
+                    </ul>
+                </article>
+            </div>
+
+            <section class="engagement">
+                <h3>Engagement Model</h3>
+                <p>We clarify strategy and architect internal workflows. Most engagements begin with a diagnostic audit and expand as your needs grow.</p>
+            </section>
+
+            <section class="contact-section">
+                <h3 style="text-align: center; margin-bottom: 3rem;">Start a Conversation</h3>
+                <form action="https://formspree.io/f/xojjvykw" method="POST">
+                    <input type="hidden" name="_next" value="https://llamapapa.github.io/Aida-Advisors/thanks.html">
+                    
+                    <div class="grid">
+                        <label>
+                            Name
+                            <input type="text" name="name" placeholder="Name" required>
+                        </label>
+                        <label>
+                            Email
+                            <input type="email" name="email" placeholder="email@company.com" required>
+                        </label>
+                    </div>
+                    
+                    <label>
+                        Message
+                        <textarea rows="5" name="message" placeholder="How can we help?" required></textarea>
+                    </label>
+                    
+                    <button type="submit">Send Inquiry</button>
+                    <p style="font-size: 0.75rem; color: #888; margin-top: 1rem; text-align: center;">
+                        Strategic advisory is offered separately via Bridge City Advisory.
+                    </p>
+                </form>
+            </section>
+        </main>
+
+        <footer>
+            &copy; 2026 AIDA ADVISORS. ALL RIGHTS RESERVED.
+        </footer>
+    </div>
+
 </body>
 </html>
