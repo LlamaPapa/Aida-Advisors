@@ -1,36 +1,93 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inquiry Received | Aida Advisors</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0908;
+            --text-primary: #e8e6e3;
+            --text-secondary: #9c9a96;
+            --accent: #d4cfc9;
+            --border: #262524;
+            --font-heading: 'Cormorant Garamond', serif;
+            --font-body: 'Inter', sans-serif;
+            --font-tech: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            line-height: 1.7;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 0 5vw;
+            text-align: center;
+        }
+
+        .container { max-width: 600px; }
+
+        .status-tag { 
+            font-family: var(--font-tech); 
+            font-size: 0.7rem; 
+            color: var(--accent); 
+            text-transform: uppercase; 
+            letter-spacing: 0.2em; 
+            margin-bottom: 2rem; 
+            display: inline-block;
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+        }
+
+        h1 { 
+            font-family: var(--font-heading); 
+            font-size: clamp(2.5rem, 6vw, 4rem); 
+            line-height: 1.1; 
+            font-weight: 400; 
+            margin-bottom: 1.5rem; 
+            color: var(--accent); 
+        }
+
+        p { 
+            font-size: 1.1rem; 
+            color: var(--text-secondary); 
+            margin-bottom: 3rem; 
+            font-weight: 300; 
+        }
+
+        .back-link { 
+            font-family: var(--font-tech); 
+            font-size: 0.75rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            color: var(--text-primary); 
+            text-decoration: none; 
+            border-bottom: 1px solid var(--accent);
+            padding-bottom: 5px;
+            transition: 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+            border-bottom-color: transparent;
+        }
+    </style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="en"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Thank You | Aida Advisors&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>body { padding: 10vw; text-align: center; display: flex; align-items: center; justify-content: center; height: 100vh; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>h1 { font-weight: 800; text-transform: uppercase; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>a { text-decoration: underline; color: #111; }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;h1&gt;Inquiry Received&lt;/h1&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;p&gt;Thank you for reaching out. We will review your message and respond shortly.&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;p&gt;&lt;a href="index.html"&gt;Return to Home&lt;/a&gt;&lt;/p&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+    <div class="container">
+        <span class="status-tag">Transmission Received</span>
+        <h1>Inquiry Logged.</h1>
+        <p>Your systems bottleneck has been noted. We will review your architecture and reach out via the provided email shortly.</p>
+        <a href="index.html" class="back-link">Return to Architecture</a>
+    </div>
 </body>
 </html>
