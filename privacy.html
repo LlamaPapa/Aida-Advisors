@@ -28,56 +28,53 @@
             max-width: 700px;
             margin: 0 auto;
         }
-        h1 {
-            font-family: var(--font-heading);
-            font-size: 3rem;
-            color: var(--accent);
-            margin-bottom: 2rem;
-        }
-        p {
-            margin-bottom: 1.5rem;
-            color: var(--text-secondary);
-            font-size: 1rem;
-        }
-        .back {
-            font-family: var(--font-tech);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            color: var(--accent);
-            text-decoration: none;
-            border-bottom: 1px solid var(--accent);
-        }
+        h1 { font-family: var(--font-heading); font-size: 3rem; color: var(--accent); margin-bottom: 2rem; }
+        h2 { font-family: var(--font-tech); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); margin-top: 3rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        p { color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 1rem; }
+        ul { list-style: none; padding-left: 0; margin-bottom: 2rem; }
+        li { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 0.75rem; padding-left: 1.5rem; position: relative; }
+        li::before { content: "—"; position: absolute; left: 0; color: var(--accent); }
+        footer { margin-top: 6rem; padding-top: 2rem; border-top: 1px solid var(--border); font-family: var(--font-tech); font-size: 0.7rem; color: var(--text-secondary); }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="index.html" class="back">← Back</a>
+        <h1>Privacy Policy</h1>
+        <p>Last updated: January 2026</p>
 
-        <h1 style="margin-top: 2rem;">Privacy Policy</h1>
+        <h2>01 / Intelligence Collection</h2>
+        <p>Aida Advisors collects only the data essential for architecting GTM systems. This includes:</p>
+        <ul>
+            <li>Identity data provided via inquiry forms (Name, Professional Email).</li>
+            <li>Engagement data regarding specific GTM bottlenecks or system requirements.</li>
+            <li>Technical metadata (IP addresses, browser types) collected for site security and optimization.</li>
+        </ul>
 
-        <p><strong>Effective Date:</strong> January 2026</p>
+        <h2>02 / System Implementation</h2>
+        <p>Data is utilized strictly for the purpose of providing advisory services, including:</p>
+        <ul>
+            <li>Diagnostic analysis of your current GTM architecture.</li>
+            <li>Direct communication regarding service inquiries.</li>
+            <li>Internal service improvement and strategic research.</li>
+        </ul>
 
-        <p>
-            Aida Advisors does not collect personal information through this website other than information voluntarily provided by individuals who contact us via email.
-        </p>
+        <h2>03 / Data Sovereignty & AI</h2>
+        <p>In alignment with the **Aida Advisors LLC** <strong>Data Sovereignty Pledge</strong>, we adhere to the following protocols:</p>
+        <ul>
+            <li><strong>Zero Training:</strong> Your proprietary data is never used to train generalized AI models.</li>
+            <li><strong>Absolute Privacy:</strong> Strategic advisory remains confidential and is never shared with third-party vendors for marketing purposes.</li>
+            <li><strong>Secure Architecture:</strong> We implement enterprise-grade security frameworks for all data handling and communication.</li>
+        </ul>
 
-        <p>
-            Any information provided is used solely to respond to business inquiries and for direct communication related to our services.
-        </p>
+        <h2>04 / Global Protocols</h2>
+        <p>We respect international data protection standards, including GDPR and CCPA. You retain the right to request access to, correction of, or deletion of your personal data at any time.</p>
 
-        <p>
-            Aida Advisors does not sell, rent, or share personal information with third parties.
-        </p>
+        <h2>05 / Contact</h2>
+        <p>For inquiries regarding this policy or our data handling architecture, please contact us via the main inquiry portal at <a href="index.html" style="color: var(--accent);">aidaadvisors.com</a>.</p>
 
-        <p>
-            This website does not use tracking cookies, advertising pixels, or analytics platforms that collect personal data.
-        </p>
-
-        <p>
-            If you have questions regarding this Privacy Policy, please contact:
-            <br>
-            <strong>hello@aidaadvisors.com</strong>
-        </p>
+        <footer>
+            &copy; 2026 Aida Advisors LLC. All Rights Reserved.
+        </footer>
     </div>
 </body>
 </html>
