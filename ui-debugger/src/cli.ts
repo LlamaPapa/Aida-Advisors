@@ -306,6 +306,155 @@ program
   });
 
 program
+  .command('ui-test <baseUrl>')
+  .description('Run UI tests against a running app')
+  .option('-p, --project <projectRoot>', 'Project root for plan context', '.')
+  .option('-s, --since <commit>', 'Check changes since commit', 'HEAD~5')
+  .option('-k, --api-key <key>', 'Anthropic API key')
+  .option('--headless', 'Run in headless mode (default: true)')
+  .option('--no-headless', 'Show browser window')
+  .option('-o, --output <dir>', 'Screenshot output directory', './screenshots')
+  .action(async (baseUrl: string, options) => {
+    console.log('\n🎭 UI Tester - Playwright Integration\n');
+    console.log(`Target: ${baseUrl}`);
+    console.log(`Headless: ${options.headless}`);
+    console.log(`Screenshots: ${options.output}`);
+    console.log('');
+
+    const { smokeTest, runUITests } = await import('./uiTester.js');
+    const { generateTestPlan, checkImplementation } = await import('./verificationAgent.js');
+
+    try {
+      // First run smoke test
+      console.log('Running smoke test...');
+      const smoke = await smokeTest(baseUrl, {
+        headless: options.headless,
+        screenshotDir: options.output,
+      });
+
+      if (!smoke.passed) {
+        console.log('\n❌ SMOKE TEST FAILED');
+        console.log(`Error: ${smoke.error}`);
+        if (smoke.consoleErrors.length > 0) {
+          console.log('Console errors:');
+          smoke.consoleErrors.forEach(e => console.log(`  - ${e}`));
+        }
+        if (smoke.screenshot) {
+          console.log(`Screenshot: ${smoke.screenshot}`);
+        }
+        process.exit(1);
+      }
+
+      console.log('✅ Smoke test passed\n');
+
+      // Generate test plan from code changes
+      const projectRoot = path.resolve(options.project);
+      const implementation = checkImplementation(projectRoot, options.since);
+
+      if (implementation.filesCreated.length === 0 && implementation.filesModified.length === 0) {
+        console.log('No code changes detected, skipping detailed tests.');
+        process.exit(0);
+      }
+
+      console.log('Generating test plan from code changes...');
+      const testPlan = await generateTestPlan(
+        {
+          brief: 'UI verification based on recent changes',
+          mustHave: [],
+          mustNot: [],
+          doneLooksLike: 'All UI elements work correctly',
+        },
+        implementation,
+        options.apiKey
+      );
+
+      console.log(`\nTest plan: ${testPlan.scenarios.length} scenarios`);
+      testPlan.scenarios.forEach(s => console.log(`  - ${s.name} (${s.type})`));
+      console.log('');
+
+      // Run UI tests
+      console.log('Running UI tests...');
+      const results = await runUITests(testPlan, {
+        baseUrl,
+        headless: options.headless,
+        screenshotDir: options.output,
+        apiKey: options.apiKey,
+      });
+
+      // Report results
+      console.log('\n' + '='.repeat(60));
+      console.log('UI TEST RESULTS');
+      console.log('='.repeat(60));
+
+      for (const result of results.results) {
+        const icon = result.passed ? '✅' : '❌';
+        console.log(`\n${icon} ${result.scenarioName}`);
+        console.log(`   Duration: ${(result.duration / 1000).toFixed(1)}s`);
+        if (result.error) {
+          console.log(`   Error: ${result.error}`);
+        }
+        if (result.screenshot) {
+          console.log(`   Screenshot: ${result.screenshot}`);
+        }
+        if (result.consoleErrors.length > 0) {
+          console.log(`   Console errors: ${result.consoleErrors.length}`);
+        }
+      }
+
+      console.log('\n' + '─'.repeat(60));
+      console.log(`Total: ${results.total} | Passed: ${results.successful} | Failed: ${results.failed}`);
+      console.log(`Duration: ${(results.duration / 1000).toFixed(1)}s`);
+      console.log('');
+
+      process.exit(results.passed ? 0 : 1);
+    } catch (error) {
+      console.error('UI testing failed:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('smoke <baseUrl>')
+  .description('Quick smoke test - just check if app loads')
+  .option('-o, --output <dir>', 'Screenshot output directory', './screenshots')
+  .option('--no-headless', 'Show browser window')
+  .action(async (baseUrl: string, options) => {
+    console.log('\n💨 Quick Smoke Test\n');
+    console.log(`Target: ${baseUrl}`);
+    console.log('');
+
+    const { smokeTest } = await import('./uiTester.js');
+
+    try {
+      const result = await smokeTest(baseUrl, {
+        headless: options.headless,
+        screenshotDir: options.output,
+      });
+
+      if (result.passed) {
+        console.log('✅ App loads successfully');
+      } else {
+        console.log('❌ App failed to load');
+        console.log(`Error: ${result.error}`);
+      }
+
+      if (result.consoleErrors.length > 0) {
+        console.log(`\n⚠️  Console errors (${result.consoleErrors.length}):`);
+        result.consoleErrors.slice(0, 5).forEach(e => console.log(`  - ${e}`));
+      }
+
+      if (result.screenshot) {
+        console.log(`\nScreenshot: ${result.screenshot}`);
+      }
+
+      process.exit(result.passed ? 0 : 1);
+    } catch (error) {
+      console.error('Smoke test failed:', error);
+      process.exit(1);
+    }
+  });
+
+program
   .command('status')
   .description('Show pipeline status')
   .action(() => {

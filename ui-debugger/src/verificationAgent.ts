@@ -15,6 +15,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { runUITests, smokeTest, type UITestSuiteResult } from './uiTester.js';
 
 // Types
 export interface ImplementationPlan {
@@ -414,12 +415,78 @@ export async function verify(config: {
   // 4. Generate flags
   const flags = await generateFlags(plan, implementation, apiKey);
 
-  // 5. Run tests (simplified - real implementation would use Playwright)
+  // 5. Run UI tests with Playwright
   const testResults: VerificationResult['testResults'] = [];
 
   if (runUITests && baseUrl) {
-    // TODO: Integrate with vibecoder's autoTestRunner
-    console.log('UI tests would run here against:', baseUrl);
+    console.log('Running UI tests against:', baseUrl);
+
+    try {
+      // First run a smoke test
+      const smoke = await smokeTest(baseUrl, {
+        screenshotDir: path.join(projectRoot, '.ui-debugger', 'screenshots'),
+        apiKey,
+      });
+
+      if (!smoke.passed) {
+        flags.push({
+          severity: 'critical',
+          message: `Smoke test failed: ${smoke.error}`,
+          suggestion: 'App failed to load - check console errors and network',
+        });
+        if (smoke.consoleErrors.length > 0) {
+          flags.push({
+            severity: 'warning',
+            message: `Console errors: ${smoke.consoleErrors.slice(0, 3).join('; ')}`,
+          });
+        }
+      } else {
+        // Run full test suite
+        const uiResults = await runUITests(testPlan, {
+          baseUrl,
+          screenshotDir: path.join(projectRoot, '.ui-debugger', 'screenshots'),
+          apiKey,
+          headless: true,
+        });
+
+        // Convert UI test results to verification results
+        for (const result of uiResults.results) {
+          testResults.push({
+            scenarioId: result.scenarioId,
+            passed: result.passed,
+            error: result.error,
+            screenshot: result.screenshot,
+            duration: result.duration,
+          });
+
+          // Add flags for failures
+          if (!result.passed) {
+            flags.push({
+              severity: 'warning',
+              message: `UI test failed: ${result.scenarioName}`,
+              suggestion: result.error || 'Check screenshot for details',
+            });
+          }
+
+          // Add flags for console errors
+          if (result.consoleErrors.length > 0) {
+            flags.push({
+              severity: 'info',
+              message: `Console errors in ${result.scenarioName}: ${result.consoleErrors.length} errors`,
+            });
+          }
+        }
+
+        console.log(`UI tests: ${uiResults.successful}/${uiResults.total} passed`);
+      }
+    } catch (error) {
+      console.error('UI testing failed:', error);
+      flags.push({
+        severity: 'warning',
+        message: `UI testing error: ${error instanceof Error ? error.message : String(error)}`,
+        suggestion: 'Check if Playwright is installed and baseUrl is accessible',
+      });
+    }
   }
 
   // 6. Determine status
