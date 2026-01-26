@@ -158,15 +158,27 @@ async function runClaudeCode(
   const claudePath = claudeCodePath || 'claude';
 
   try {
-    const result = execSync(
-      `cd "${projectRoot}" && ${claudePath} --print "${prompt.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`,
-      {
-        encoding: 'utf-8',
-        timeout: 180000,
-        maxBuffer: 10 * 1024 * 1024,
+    // Write prompt to a temp file to avoid shell escaping issues
+    const promptFile = path.join(projectRoot, '.debug-pipeline-prompt.txt');
+    fs.writeFileSync(promptFile, prompt, 'utf-8');
+
+    try {
+      // Use -p to pass prompt, --yes to auto-accept, and capture output
+      const result = execSync(
+        `cd "${projectRoot}" && cat "${promptFile}" | ${claudePath} -p --yes 2>&1`,
+        {
+          encoding: 'utf-8',
+          timeout: 180000,
+          maxBuffer: 10 * 1024 * 1024,
+        }
+      );
+      return result;
+    } finally {
+      // Clean up prompt file
+      if (fs.existsSync(promptFile)) {
+        fs.unlinkSync(promptFile);
       }
-    );
-    return result;
+    }
   } catch (error: any) {
     return `Claude Code execution failed: ${error.message}\n${error.stdout || ''}\n${error.stderr || ''}`;
   }
