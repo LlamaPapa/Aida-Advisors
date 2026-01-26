@@ -345,8 +345,24 @@ async function executeAssertion(
 
     case 'title':
       const title = await page.title();
-      if (assertion.expected && !title.includes(String(assertion.expected))) {
-        throw new Error(`Expected title "${assertion.expected}" but got "${title}"`);
+      if (assertion.expected) {
+        const expected = String(assertion.expected);
+        // Check if it's a regex pattern (starts/ends with / or contains .* or other regex chars)
+        const isRegex = expected.startsWith('/') || expected.includes('.*') || expected.includes('\\');
+        if (isRegex) {
+          // Treat as regex - but .* means "anything" so just pass
+          if (expected === '.*' || expected === '/.*/') {
+            // Any title is fine
+          } else {
+            const pattern = expected.replace(/^\/|\/$/g, ''); // Remove leading/trailing slashes
+            const regex = new RegExp(pattern, 'i');
+            if (!regex.test(title)) {
+              throw new Error(`Expected title to match "${expected}" but got "${title}"`);
+            }
+          }
+        } else if (!title.toLowerCase().includes(expected.toLowerCase())) {
+          throw new Error(`Expected title "${expected}" but got "${title}"`);
+        }
       }
       break;
 
