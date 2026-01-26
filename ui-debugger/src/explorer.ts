@@ -85,7 +85,12 @@ Focus on:
 1. Main functionality (buttons, forms, navigation)
 2. User flows (login, submit, save)
 3. Interactive elements we haven't tested yet
-4. Don't repeat the same actions`;
+4. Don't repeat the same actions
+
+IMPORTANT: For selector, use VISIBLE TEXT on buttons/links, not CSS classes. Examples:
+- "Load Project" not ".load-btn"
+- "Start Roundtable" not ".action-btn.roundtable"
+- "Submit" not "button[type=submit]"`;
 
   try {
     const response = await client.messages.create({
@@ -108,6 +113,90 @@ Focus on:
 }
 
 /**
+ * Try multiple selector strategies to find and interact with an element
+ */
+async function findAndClick(page: Page, selector: string, timeout = 3000): Promise<boolean> {
+  // Clean up the selector - remove CSS class notation if present
+  const cleanSelector = selector.replace(/^\./, '').replace(/-/g, ' ').replace(/\./g, ' ');
+
+  const strategies = [
+    // Direct selector (in case it's valid)
+    selector,
+    // Text-based (most reliable)
+    `text="${selector}"`,
+    `text="${cleanSelector}"`,
+    // Button with text
+    `button:has-text("${selector}")`,
+    `button:has-text("${cleanSelector}")`,
+    // Any clickable with text
+    `[role="button"]:has-text("${selector}")`,
+    `a:has-text("${selector}")`,
+    `div[onclick]:has-text("${selector}")`,
+    // Partial text match
+    `button >> text=${selector}`,
+    `*:has-text("${selector}"):visible >> nth=0`,
+    // Aria labels
+    `[aria-label="${selector}"]`,
+    `[aria-label*="${cleanSelector}" i]`,
+    // Title attribute
+    `[title="${selector}"]`,
+    `[title*="${cleanSelector}" i]`,
+    // Data attributes
+    `[data-testid="${selector}"]`,
+    `[data-action="${selector}"]`,
+  ];
+
+  for (const strat of strategies) {
+    try {
+      const element = page.locator(strat).first();
+      if (await element.isVisible({ timeout: 500 })) {
+        await element.click({ timeout });
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+/**
+ * Try multiple strategies to find and fill an input
+ */
+async function findAndFill(page: Page, selector: string, value: string, timeout = 3000): Promise<boolean> {
+  const cleanSelector = selector.replace(/^\./, '').replace(/-/g, ' ');
+
+  const strategies = [
+    selector,
+    `input[placeholder*="${selector}" i]`,
+    `input[placeholder*="${cleanSelector}" i]`,
+    `textarea[placeholder*="${selector}" i]`,
+    `textarea[placeholder*="${cleanSelector}" i]`,
+    `input[name*="${selector}" i]`,
+    `[aria-label*="${selector}" i]`,
+    `[aria-label*="${cleanSelector}" i]`,
+    `input:near(:text("${selector}"))`,
+    `textarea:near(:text("${selector}"))`,
+    // Try finding any visible input/textarea
+    `input:visible >> nth=0`,
+    `textarea:visible >> nth=0`,
+  ];
+
+  for (const strat of strategies) {
+    try {
+      const element = page.locator(strat).first();
+      if (await element.isVisible({ timeout: 500 })) {
+        await element.fill(value, { timeout });
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}
+
+/**
  * Execute an action on the page
  */
 async function executeAction(
@@ -117,69 +206,40 @@ async function executeAction(
   try {
     switch (action.action) {
       case 'click':
-        // Try multiple strategies to find the element
-        const clickSelectors = [
-          action.selector,
-          `text=${action.selector}`,
-          `button:has-text("${action.selector}")`,
-          `a:has-text("${action.selector}")`,
-          `[aria-label="${action.selector}"]`,
-        ];
-
-        let clicked = false;
-        for (const sel of clickSelectors) {
-          try {
-            await page.click(sel, { timeout: 3000 });
-            clicked = true;
-            break;
-          } catch {
-            continue;
+        const clicked = await findAndClick(page, action.selector);
+        if (!clicked) {
+          // Try one more thing - look for any button/link with similar text
+          const fuzzyClicked = await findAndClick(page, action.description.split(' ').slice(-2).join(' '));
+          if (!fuzzyClicked) {
+            return { success: false, error: `Could not find clickable element: "${action.selector}"` };
           }
         }
-
-        if (!clicked) {
-          return { success: false, error: `Could not find element: ${action.selector}` };
-        }
-
-        // Wait for any navigation or updates
         await page.waitForTimeout(1000);
         break;
 
       case 'fill':
-        const fillSelectors = [
-          action.selector,
-          `input[placeholder*="${action.selector}" i]`,
-          `input[name="${action.selector}"]`,
-          `textarea[placeholder*="${action.selector}" i]`,
-          `[aria-label="${action.selector}"]`,
-        ];
-
-        let filled = false;
-        for (const sel of fillSelectors) {
-          try {
-            await page.fill(sel, action.value || 'test input', { timeout: 3000 });
-            filled = true;
-            break;
-          } catch {
-            continue;
-          }
-        }
-
+        const filled = await findAndFill(page, action.selector, action.value || 'test input');
         if (!filled) {
-          return { success: false, error: `Could not find input: ${action.selector}` };
+          return { success: false, error: `Could not find input field: "${action.selector}"` };
         }
         break;
 
       case 'select':
-        await page.selectOption(action.selector, action.value || '', { timeout: 3000 });
+        try {
+          await page.selectOption(action.selector, action.value || '', { timeout: 3000 });
+        } catch {
+          return { success: false, error: `Could not find select: "${action.selector}"` };
+        }
         break;
 
       case 'navigate':
         if (action.selector.startsWith('http')) {
           await page.goto(action.selector, { timeout: 10000 });
         } else {
-          // Try clicking a nav link
-          await page.click(`a:has-text("${action.selector}")`, { timeout: 3000 });
+          const navClicked = await findAndClick(page, action.selector);
+          if (!navClicked) {
+            return { success: false, error: `Could not find navigation: "${action.selector}"` };
+          }
         }
         await page.waitForLoadState('networkidle', { timeout: 10000 });
         break;
@@ -242,10 +302,29 @@ export async function exploreApp(config: ExploreConfig): Promise<ExploreResult> 
       }
     });
 
-    // Collect page errors
+    // Collect page errors (JavaScript exceptions)
     page.on('pageerror', error => {
-      errorsFound.push(`Page error: ${error.message}`);
+      errorsFound.push(`JS Error: ${error.message}`);
       console.log(`[explorer] Page error: ${error.message.slice(0, 100)}`);
+    });
+
+    // Collect network errors (404s, 500s, etc.)
+    page.on('response', response => {
+      const status = response.status();
+      if (status >= 400) {
+        const url = response.url();
+        const errorMsg = `HTTP ${status}: ${url}`;
+        consoleErrors.push(errorMsg);
+        console.log(`[explorer] Network error: ${errorMsg}`);
+      }
+    });
+
+    // Collect failed requests (network failures)
+    page.on('requestfailed', request => {
+      const failure = request.failure();
+      const errorMsg = `Request failed: ${request.url()} - ${failure?.errorText || 'unknown error'}`;
+      consoleErrors.push(errorMsg);
+      console.log(`[explorer] ${errorMsg}`);
     });
 
     // Navigate to the app
