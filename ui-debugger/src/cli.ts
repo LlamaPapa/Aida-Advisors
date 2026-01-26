@@ -455,6 +455,96 @@ program
   });
 
 program
+  .command('spec <specFile>')
+  .description('Run a UI test spec file')
+  .option('-o, --output <dir>', 'Screenshot output directory', './screenshots')
+  .option('-d, --data-dir <dir>', 'Test data directory', './test-data')
+  .option('--no-headless', 'Show browser window')
+  .option('-t, --timeout <ms>', 'Timeout per action in ms', '10000')
+  .action(async (specFile: string, options) => {
+    console.log('\n📋 Running Test Spec\n');
+
+    const { loadSpec, validateSpec, runSpec } = await import('./testSpec.js');
+
+    // Load spec
+    const specPath = path.resolve(specFile);
+    console.log(`Spec: ${specPath}`);
+
+    let spec;
+    try {
+      spec = loadSpec(specPath);
+    } catch (error) {
+      console.error(`Failed to load spec: ${error}`);
+      process.exit(1);
+    }
+
+    if (!validateSpec(spec)) {
+      console.error('Invalid spec format');
+      process.exit(1);
+    }
+
+    console.log(`Name: ${spec.name}`);
+    console.log(`Base URL: ${spec.baseUrl}`);
+    console.log(`Scenarios: ${spec.scenarios.length}`);
+    console.log(`Headless: ${options.headless}`);
+    console.log('');
+
+    // Run spec
+    console.log('Running tests...\n');
+    const result = await runSpec(spec, {
+      headless: options.headless,
+      screenshotDir: options.output,
+      testDataDir: options.dataDir,
+      timeout: parseInt(options.timeout),
+    });
+
+    // Report results
+    console.log('='.repeat(60));
+    console.log('TEST RESULTS');
+    console.log('='.repeat(60));
+
+    for (const scenario of result.scenarios) {
+      const icon = scenario.passed ? '✅' : '❌';
+      console.log(`\n${icon} ${scenario.name}`);
+      console.log(`   Steps: ${scenario.steps.filter(s => s.passed).length}/${scenario.steps.length} passed`);
+      console.log(`   Verifications: ${scenario.verifications.filter(v => v.passed).length}/${scenario.verifications.length} passed`);
+      console.log(`   Duration: ${(scenario.duration / 1000).toFixed(1)}s`);
+
+      if (scenario.error) {
+        console.log(`   Error: ${scenario.error}`);
+      }
+
+      // Show failed verifications
+      const failedVerifications = scenario.verifications.filter(v => !v.passed);
+      if (failedVerifications.length > 0) {
+        console.log('   Failed checks:');
+        for (const v of failedVerifications) {
+          console.log(`     - ${v.check}: ${v.error}`);
+          if (v.expected) console.log(`       Expected: ${v.expected}`);
+          if (v.actual) console.log(`       Actual: ${v.actual}`);
+        }
+      }
+    }
+
+    console.log('\n' + '─'.repeat(60));
+    const passedCount = result.scenarios.filter(s => s.passed).length;
+    console.log(`Total: ${result.scenarios.length} | Passed: ${passedCount} | Failed: ${result.scenarios.length - passedCount}`);
+    console.log(`Duration: ${(result.duration / 1000).toFixed(1)}s`);
+
+    if (result.errors.length > 0) {
+      console.log('\nErrors:');
+      result.errors.forEach(e => console.log(`  - ${e}`));
+    }
+
+    if (result.screenshots.length > 0) {
+      console.log(`\nScreenshots: ${options.output}`);
+    }
+
+    console.log('');
+    process.exit(result.passed ? 0 : 1);
+  });
+
+program
   .command('test-data')
   .description('Generate test data files (CSV, JSON, users, products, images)')
   .option('-t, --type <type>', 'Data type: csv, json, users, products, image, custom', 'csv')
