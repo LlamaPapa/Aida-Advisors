@@ -165,9 +165,9 @@ async function runClaudeCode(
     fs.writeFileSync(promptFile, prompt, 'utf-8');
 
     try {
-      // Use -p to pass prompt, --yes to auto-accept, and capture output
+      // Use -p to pass prompt and --dangerously-skip-permissions for non-interactive mode
       const result = execSync(
-        `cd "${projectRoot}" && cat "${promptFile}" | ${claudePath} -p --yes 2>&1`,
+        `cd "${projectRoot}" && cat "${promptFile}" | ${claudePath} -p --dangerously-skip-permissions 2>&1`,
         {
           encoding: 'utf-8',
           timeout: 180000,
