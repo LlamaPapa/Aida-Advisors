@@ -162,6 +162,61 @@ app.post('/api/stop', (req, res) => {
   res.json({ success: true, message: 'Pipeline stopped' });
 });
 
+// === UI VERIFICATION ===
+// This is the main feature: analyze code, generate tests, run them
+
+app.post('/api/verify-ui', async (req, res) => {
+  const validProjectRoot = validateProjectRoot(req.body.projectRoot);
+  if (!validProjectRoot) {
+    res.status(400).json({ error: 'projectRoot is required and must be an absolute path' });
+    return;
+  }
+
+  const baseUrl = validateUrl(req.body.baseUrl);
+  if (!baseUrl) {
+    res.status(400).json({ error: 'baseUrl is required (e.g., http://localhost:5180)' });
+    return;
+  }
+
+  console.log(`[verify-ui] Starting verification for ${validProjectRoot}`);
+  console.log(`[verify-ui] Base URL: ${baseUrl}`);
+
+  try {
+    // Run full verification with UI tests
+    const result = await verify({
+      projectRoot: validProjectRoot,
+      baseUrl,
+      shouldRunUITests: true,
+      sinceCommit: req.body.sinceCommit || 'HEAD~5',
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      plan: req.body.plan, // Optional: pass a specific plan
+    });
+
+    console.log(`[verify-ui] Complete: ${result.status}`);
+    console.log(`[verify-ui] Test plan: ${result.testPlan.scenarios.length} scenarios`);
+    console.log(`[verify-ui] Flags: ${result.flags.length}`);
+
+    res.json({
+      success: result.status === 'pass' || result.status === 'partial',
+      status: result.status,
+      summary: result.summary,
+      testPlan: result.testPlan,
+      testResults: result.testResults,
+      flags: result.flags,
+      implementation: {
+        filesCreated: result.implementation.filesCreated,
+        filesModified: result.implementation.filesModified,
+      },
+      readyToContinue: result.readyToContinue,
+    });
+  } catch (error) {
+    console.error('[verify-ui] Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Verification failed',
+    });
+  }
+});
+
 // SSE endpoint for real-time updates
 app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');

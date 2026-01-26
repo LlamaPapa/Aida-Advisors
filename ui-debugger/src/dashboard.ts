@@ -218,7 +218,24 @@ export function getDashboardHtml(): string {
               <label>Project Path</label>
               <input type="text" id="projectRoot" placeholder="/path/to/project" />
             </div>
-            <button class="btn btn-primary" id="btnRun" onclick="runPipeline()">Start Pipeline</button>
+            <div class="form-group">
+              <label>App URL (for UI testing)</label>
+              <input type="text" id="baseUrl" placeholder="http://localhost:5180" />
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary" id="btnRun" onclick="runPipeline()">Build Check</button>
+              <button class="btn" id="btnVerify" onclick="verifyUI()" style="background: #8957e5;">Verify UI</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 20px;" id="verifyResultsCard" style="display: none;">
+          <div class="card-header">
+            <span>UI Verification Results</span>
+            <span id="verifyStatus" class="status-badge status-idle">-</span>
+          </div>
+          <div class="card-body" id="verifyResults">
+            <div style="color: #8b949e; font-size: 14px;">Run "Verify UI" to analyze code and test the UI</div>
           </div>
         </div>
 
@@ -415,6 +432,111 @@ export function getDashboardHtml(): string {
         await fetch('/api/stop', { method: 'POST' });
       } catch (err) {
         alert('Failed to stop: ' + err.message);
+      }
+    }
+
+    async function verifyUI() {
+      const projectRoot = document.getElementById('projectRoot').value;
+      const baseUrl = document.getElementById('baseUrl').value;
+
+      if (!projectRoot) {
+        alert('Please enter a project path');
+        return;
+      }
+      if (!baseUrl) {
+        alert('Please enter the app URL (e.g., http://localhost:5180)');
+        return;
+      }
+
+      const resultsCard = document.getElementById('verifyResultsCard');
+      const resultsEl = document.getElementById('verifyResults');
+      const statusEl = document.getElementById('verifyStatus');
+
+      resultsCard.style.display = 'block';
+      resultsEl.innerHTML = '<div style="color: #58a6ff;">🔍 Analyzing code and generating tests...</div>';
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status-badge status-running';
+
+      addLog('Starting UI verification...', 'info');
+      addLog('Analyzing code changes...', 'info');
+
+      try {
+        const res = await fetch('/api/verify-ui', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectRoot, baseUrl })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          statusEl.textContent = 'Error';
+          statusEl.className = 'status-badge status-failed';
+          resultsEl.innerHTML = '<div style="color: #f85149;">Error: ' + data.error + '</div>';
+          addLog('Verification failed: ' + data.error, 'stderr');
+          return;
+        }
+
+        // Update status
+        statusEl.textContent = data.status.toUpperCase();
+        statusEl.className = 'status-badge status-' + (data.status === 'pass' ? 'success' : data.status === 'fail' ? 'failed' : 'running');
+
+        // Build results HTML
+        let html = '<div style="font-size: 13px;">';
+
+        // Summary
+        html += '<div style="margin-bottom: 12px; padding: 10px; background: #21262d; border-radius: 4px;">';
+        html += '<strong>Summary:</strong> ' + data.summary;
+        html += '</div>';
+
+        // Test Plan
+        if (data.testPlan && data.testPlan.scenarios.length > 0) {
+          html += '<div style="margin-bottom: 12px;"><strong>Test Plan (' + data.testPlan.scenarios.length + ' scenarios):</strong></div>';
+          html += '<ul style="margin: 0; padding-left: 20px;">';
+          data.testPlan.scenarios.forEach(s => {
+            html += '<li style="margin-bottom: 4px;">' + s.name + ' <span style="color: #8b949e;">(' + s.type + ', ' + s.priority + ')</span></li>';
+          });
+          html += '</ul>';
+        }
+
+        // Test Results
+        if (data.testResults && data.testResults.length > 0) {
+          html += '<div style="margin: 12px 0;"><strong>Test Results:</strong></div>';
+          data.testResults.forEach(r => {
+            const icon = r.passed ? '✅' : '❌';
+            html += '<div style="padding: 4px 0;">' + icon + ' ' + r.scenarioId + (r.error ? ': ' + r.error : '') + '</div>';
+          });
+        }
+
+        // Flags
+        if (data.flags && data.flags.length > 0) {
+          html += '<div style="margin: 12px 0;"><strong>Flags (' + data.flags.length + '):</strong></div>';
+          data.flags.forEach(f => {
+            const color = f.severity === 'critical' ? '#f85149' : f.severity === 'warning' ? '#d29922' : '#8b949e';
+            html += '<div style="padding: 4px 0; color: ' + color + ';">';
+            html += (f.severity === 'critical' ? '🚨' : f.severity === 'warning' ? '⚠️' : 'ℹ️') + ' ' + f.message;
+            if (f.suggestion) html += '<br><span style="color: #8b949e; font-size: 12px;">  → ' + f.suggestion + '</span>';
+            html += '</div>';
+          });
+        }
+
+        // Files changed
+        if (data.implementation) {
+          html += '<div style="margin: 12px 0; color: #8b949e; font-size: 12px;">';
+          html += 'Files: ' + data.implementation.filesCreated.length + ' created, ' + data.implementation.filesModified.length + ' modified';
+          html += '</div>';
+        }
+
+        html += '</div>';
+        resultsEl.innerHTML = html;
+
+        addLog('Verification complete: ' + data.status, data.status === 'pass' ? 'stdout' : 'stderr');
+
+      } catch (err) {
+        statusEl.textContent = 'Error';
+        statusEl.className = 'status-badge status-failed';
+        resultsEl.innerHTML = '<div style="color: #f85149;">Failed: ' + err.message + '</div>';
+        addLog('Verification error: ' + err.message, 'stderr');
       }
     }
 
