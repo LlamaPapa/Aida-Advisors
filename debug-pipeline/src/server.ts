@@ -62,37 +62,30 @@ app.post('/api/run', async (req, res) => {
     return;
   }
 
-  const {
-    projectRoot,
-    buildCommand,
-    testCommand,
-    maxFixAttempts,
-    autoFix,
-    runTests,
-    useClaudeCode,
-    timeout,
-    gitEnabled,
-    gitCommitFixes,
-  } = req.body;
+  const { projectRoot } = req.body;
 
   if (!projectRoot) {
     res.status(400).json({ error: 'projectRoot is required' });
     return;
   }
 
+  // Build config with only defined values (let pipeline use defaults)
+  const pipelineConfig: any = { projectRoot };
+
+  if (req.body.buildCommand) pipelineConfig.buildCommand = req.body.buildCommand;
+  if (req.body.testCommand) pipelineConfig.testCommand = req.body.testCommand;
+  if (req.body.lintCommand) pipelineConfig.lintCommand = req.body.lintCommand;
+  if (req.body.maxFixAttempts !== undefined) pipelineConfig.maxFixAttempts = req.body.maxFixAttempts;
+  if (req.body.autoFix !== undefined) pipelineConfig.autoFix = req.body.autoFix;
+  if (req.body.runLint !== undefined) pipelineConfig.runLint = req.body.runLint;
+  if (req.body.runTests !== undefined) pipelineConfig.runTests = req.body.runTests;
+  if (req.body.useClaudeCode !== undefined) pipelineConfig.useClaudeCode = req.body.useClaudeCode;
+  if (req.body.timeout !== undefined) pipelineConfig.timeout = req.body.timeout;
+  if (req.body.gitEnabled !== undefined) pipelineConfig.gitEnabled = req.body.gitEnabled;
+  if (req.body.gitCommitFixes !== undefined) pipelineConfig.gitCommitFixes = req.body.gitCommitFixes;
+
   // Start pipeline (don't await - return immediately)
-  const runPromise = runPipeline({
-    projectRoot,
-    buildCommand,
-    testCommand,
-    maxFixAttempts: maxFixAttempts ?? 3,
-    autoFix: autoFix ?? true,
-    runTests: runTests ?? true,
-    useClaudeCode: useClaudeCode ?? true,
-    timeout: timeout ?? 300000,
-    gitEnabled: gitEnabled ?? true,
-    gitCommitFixes: gitCommitFixes ?? true,
-  });
+  const runPromise = runPipeline(pipelineConfig);
 
   // Get initial run info
   const currentState = getState();
