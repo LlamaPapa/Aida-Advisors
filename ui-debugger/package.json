@@ -1,11 +1,11 @@
 {
-  "name": "@aida/debug-pipeline",
+  "name": "@aida/ui-debugger",
   "version": "1.0.0",
-  "description": "Autonomous debugging pipeline powered by Claude Opus 4.5",
+  "description": "Autonomous UI debugging agent - verifies implementation, runs tests, flags issues before you continue",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "debug-pipeline": "dist/cli.js"
+    "ui-debugger": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
