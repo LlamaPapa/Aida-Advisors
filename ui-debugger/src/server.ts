@@ -19,6 +19,11 @@ import {
   pipelineEvents,
 } from './pipeline.js';
 import { getDashboardHtml } from './dashboard.js';
+import { AutoHook, createGitHook } from './autoHook.js';
+import { verify } from './verificationAgent.js';
+
+// Global auto-hook instance
+let autoHook: AutoHook | null = null;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -181,6 +186,149 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// === AUTO-HOOK ENDPOINTS ===
+
+// Start auto-hook monitoring
+app.post('/api/hook/start', async (req, res) => {
+  if (autoHook) {
+    res.status(409).json({ error: 'Auto-hook already running' });
+    return;
+  }
+
+  const { projectRoot, baseUrl, watchFiles, watchGit, roundtableUrl, runUITests } = req.body;
+
+  if (!projectRoot) {
+    res.status(400).json({ error: 'projectRoot is required' });
+    return;
+  }
+
+  try {
+    autoHook = new AutoHook({
+      projectRoot,
+      baseUrl,
+      watchFiles: watchFiles !== false,
+      watchGit: watchGit !== false,
+      roundtableUrl,
+      runUITests: runUITests !== false,
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    await autoHook.start();
+
+    res.json({
+      success: true,
+      message: 'Auto-hook started',
+      watching: { files: watchFiles !== false, git: watchGit !== false },
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// Stop auto-hook monitoring
+app.post('/api/hook/stop', (req, res) => {
+  if (!autoHook) {
+    res.status(404).json({ error: 'No auto-hook running' });
+    return;
+  }
+
+  autoHook.stop();
+  autoHook = null;
+
+  res.json({ success: true, message: 'Auto-hook stopped' });
+});
+
+// Webhook for vibecoder-roundtable: implementation complete
+app.post('/api/hook/implementation', async (req, res) => {
+  const { projectRoot, plan, sessionId, commitHash } = req.body;
+
+  if (!projectRoot) {
+    res.status(400).json({ error: 'projectRoot is required' });
+    return;
+  }
+
+  try {
+    // If auto-hook is running, use it
+    if (autoHook) {
+      const result = await autoHook.handleWebhook({
+        type: 'implementation-complete',
+        projectRoot,
+        plan,
+        sessionId,
+        commitHash,
+      });
+
+      res.json({
+        success: result.success,
+        verification: result.verification?.status,
+        flags: result.verification?.flags,
+        duration: result.duration,
+      });
+      return;
+    }
+
+    // Otherwise, run one-shot verification
+    const result = await verify({
+      projectRoot,
+      plan,
+      sinceCommit: commitHash || 'HEAD~1',
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    res.json({
+      success: result.status === 'pass' || result.status === 'partial',
+      verification: result.status,
+      flags: result.flags,
+      summary: result.summary,
+      readyToContinue: result.readyToContinue,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// Webhook for git commits (called by post-commit hook)
+app.post('/api/hook/commit', async (req, res) => {
+  const { commitHash, changedFiles } = req.body;
+
+  if (autoHook) {
+    const result = await autoHook.handleWebhook({
+      type: 'code-generated',
+      commitHash,
+    });
+
+    res.json({ success: result.success });
+  } else {
+    res.json({ success: false, message: 'Auto-hook not running' });
+  }
+});
+
+// Setup git hook
+app.post('/api/hook/setup-git', (req, res) => {
+  const { projectRoot } = req.body;
+
+  if (!projectRoot) {
+    res.status(400).json({ error: 'projectRoot is required' });
+    return;
+  }
+
+  const webhookUrl = `http://localhost:${PORT}`;
+  const hookPath = createGitHook(projectRoot, webhookUrl);
+
+  if (hookPath) {
+    res.json({ success: true, hookPath });
+  } else {
+    res.status(400).json({ error: 'Could not create git hook - .git/hooks not found' });
+  }
+});
+
+// Get auto-hook status
+app.get('/api/hook/status', (req, res) => {
+  res.json({
+    running: !!autoHook,
+  });
+});
+
 app.listen(PORT, () => {
   console.log('');
   console.log('🔧 Debug Pipeline Server');
@@ -188,12 +336,20 @@ app.listen(PORT, () => {
   console.log(`Dashboard: http://localhost:${PORT}`);
   console.log('');
   console.log('API Endpoints:');
-  console.log('  POST /api/run         - Start pipeline');
-  console.log('  POST /api/quick-run   - Auto-detect and run');
-  console.log('  POST /api/stop        - Stop current run');
-  console.log('  GET  /api/state       - Get state');
-  console.log('  GET  /api/history     - Get run history');
-  console.log('  GET  /api/runs/:id    - Get specific run');
-  console.log('  GET  /api/events      - SSE stream');
+  console.log('  POST /api/run              - Start pipeline');
+  console.log('  POST /api/quick-run        - Auto-detect and run');
+  console.log('  POST /api/stop             - Stop current run');
+  console.log('  GET  /api/state            - Get state');
+  console.log('  GET  /api/history          - Get run history');
+  console.log('  GET  /api/runs/:id         - Get specific run');
+  console.log('  GET  /api/events           - SSE stream');
+  console.log('');
+  console.log('Auto-Hook (for vibecoder integration):');
+  console.log('  POST /api/hook/start       - Start auto-monitoring');
+  console.log('  POST /api/hook/stop        - Stop auto-monitoring');
+  console.log('  POST /api/hook/implementation - Webhook for vibecoder');
+  console.log('  POST /api/hook/commit      - Git commit webhook');
+  console.log('  POST /api/hook/setup-git   - Install git hook');
+  console.log('  GET  /api/hook/status      - Check hook status');
   console.log('');
 });

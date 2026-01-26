@@ -550,6 +550,119 @@ program
   });
 
 program
+  .command('daemon <projectRoot>')
+  .description('Run as daemon - auto-trigger on git commits and file changes')
+  .option('-b, --base-url <url>', 'Base URL for UI testing (e.g., http://localhost:3000)')
+  .option('-r, --roundtable <url>', 'Vibecoder roundtable URL for reporting')
+  .option('--no-watch-files', 'Disable file watching')
+  .option('--no-watch-git', 'Disable git commit watching')
+  .option('--no-ui-tests', 'Disable UI testing')
+  .option('--no-build-fix', 'Disable automatic build fixing')
+  .option('-k, --api-key <key>', 'Anthropic API key')
+  .option('-d, --debounce <ms>', 'Debounce delay for file changes', '2000')
+  .action(async (projectRoot: string, options) => {
+    console.log('\n🤖 UI Debugger Daemon\n');
+    console.log(`Project: ${path.resolve(projectRoot)}`);
+    console.log(`Base URL: ${options.baseUrl || '(not set - UI tests disabled)'}`);
+    console.log(`Watch files: ${options.watchFiles}`);
+    console.log(`Watch git: ${options.watchGit}`);
+    console.log(`UI tests: ${options.uiTests && options.baseUrl ? 'enabled' : 'disabled'}`);
+    console.log(`Build fix: ${options.buildFix}`);
+    console.log('');
+
+    const { AutoHook, createGitHook } = await import('./autoHook.js');
+
+    const hook = new AutoHook({
+      projectRoot: path.resolve(projectRoot),
+      baseUrl: options.baseUrl,
+      apiKey: options.apiKey,
+      roundtableUrl: options.roundtable,
+      watchFiles: options.watchFiles,
+      watchGit: options.watchGit,
+      runUITests: options.uiTests && !!options.baseUrl,
+      runBuildFix: options.buildFix,
+      debounceMs: parseInt(options.debounce),
+      onTrigger: (trigger) => {
+        console.log(`\n🔔 Triggered: ${trigger.type} from ${trigger.source}`);
+      },
+      onComplete: (result) => {
+        const icon = result.success ? '✅' : '❌';
+        console.log(`${icon} Complete: ${result.success ? 'PASS' : 'FAIL'} (${(result.duration / 1000).toFixed(1)}s)`);
+      },
+      onError: (error) => {
+        console.error(`❌ Error: ${error.message}`);
+      },
+    });
+
+    await hook.start();
+
+    console.log('\n🟢 Daemon active - watching for changes');
+    console.log('   Press Ctrl+C to stop\n');
+
+    // Setup git hook if git watching is enabled
+    if (options.watchGit) {
+      try {
+        const hookPath = createGitHook(path.resolve(projectRoot), 'http://localhost:3002');
+        if (hookPath) {
+          console.log(`   Git hook installed: ${hookPath}`);
+        }
+      } catch {
+        // Ignore git hook setup errors
+      }
+    }
+
+    // Keep process alive
+    process.on('SIGINT', () => {
+      console.log('\n\n👋 Stopping daemon...');
+      hook.stop();
+      process.exit(0);
+    });
+
+    process.on('SIGTERM', () => {
+      hook.stop();
+      process.exit(0);
+    });
+
+    // Prevent exit
+    await new Promise(() => {});
+  });
+
+program
+  .command('setup-hook <projectRoot>')
+  .description('Install git post-commit hook for auto-triggering')
+  .option('-u, --webhook-url <url>', 'Webhook URL', 'http://localhost:3002')
+  .action(async (projectRoot: string, options) => {
+    console.log('\n🔧 Setting up Git Hook\n');
+
+    const { createGitHook } = await import('./autoHook.js');
+
+    const hookPath = createGitHook(path.resolve(projectRoot), options.webhookUrl);
+
+    if (hookPath) {
+      console.log('✅ Git hook installed successfully!');
+      console.log(`   Path: ${hookPath}`);
+      console.log('');
+      console.log('Now every commit will automatically trigger verification.');
+      console.log('Make sure the ui-debugger server is running:');
+      console.log('   ui-debugger server');
+      console.log('');
+    } else {
+      console.error('❌ Failed to install git hook');
+      console.error('   Make sure you are in a git repository');
+      process.exit(1);
+    }
+  });
+
+program
+  .command('server')
+  .description('Start the HTTP server with dashboard and webhooks')
+  .option('-p, --port <port>', 'Port number', '3002')
+  .action(async (options) => {
+    process.env.PORT = options.port;
+    await import('./server.js');
+  });
+
+program
   .command('status')
   .description('Show pipeline status')
   .action(() => {
