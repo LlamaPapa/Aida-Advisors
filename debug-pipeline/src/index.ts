@@ -31,3 +31,11 @@ export {
   rollback,
   discardChanges,
 } from './git.js';
+export {
+  verify,
+  quickVerify,
+  fetchPlan,
+  checkImplementation,
+  generateTestPlan,
+  generateFlags,
+} from './verificationAgent.js';

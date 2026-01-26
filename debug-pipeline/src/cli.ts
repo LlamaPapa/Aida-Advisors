@@ -217,6 +217,95 @@ program
   });
 
 program
+  .command('verify <projectRoot>')
+  .description('Verify implementation against plan before continuing')
+  .option('-s, --since <commit>', 'Check changes since commit', 'HEAD~5')
+  .option('-r, --roundtable <url>', 'Vibecoder roundtable API URL', 'http://localhost:3001')
+  .option('--session <id>', 'Session ID for roundtable')
+  .option('-k, --api-key <key>', 'Anthropic API key')
+  .option('--ui', 'Run UI tests (requires Playwright)')
+  .option('--base-url <url>', 'Base URL for UI tests')
+  .action(async (projectRoot: string, options) => {
+    console.log('\n🔍 Verification Agent\n');
+    console.log(`Project: ${path.resolve(projectRoot)}`);
+    console.log(`Checking changes since: ${options.since}`);
+    console.log('');
+
+    // Dynamic import to avoid circular deps
+    const { verify } = await import('./verificationAgent.js');
+
+    try {
+      const result = await verify({
+        projectRoot: path.resolve(projectRoot),
+        sinceCommit: options.since,
+        roundtableUrl: options.roundtable,
+        sessionId: options.session,
+        apiKey: options.apiKey,
+        runUITests: options.ui,
+        baseUrl: options.baseUrl,
+      });
+
+      console.log('\n' + '='.repeat(60));
+      console.log('VERIFICATION REPORT');
+      console.log('='.repeat(60));
+
+      // Status
+      const statusEmoji = {
+        pass: '✅',
+        fail: '❌',
+        partial: '⚠️',
+        blocked: '🚫',
+      }[result.status];
+      console.log(`\nStatus: ${statusEmoji} ${result.status.toUpperCase()}`);
+
+      // Implementation summary
+      console.log(`\n📁 Implementation:`);
+      console.log(`   Files created: ${result.implementation.filesCreated.length}`);
+      console.log(`   Files modified: ${result.implementation.filesModified.length}`);
+      if (result.implementation.filesCreated.length > 0) {
+        console.log(`   New: ${result.implementation.filesCreated.slice(0, 5).join(', ')}`);
+      }
+
+      // Test plan
+      console.log(`\n🧪 Test Plan:`);
+      console.log(`   Scenarios: ${result.testPlan.scenarios.length}`);
+      for (const scenario of result.testPlan.scenarios) {
+        console.log(`   - [${scenario.priority}] ${scenario.name} (${scenario.type})`);
+      }
+
+      // Coverage
+      if (result.testPlan.coverage.mustHavesMissing.length > 0) {
+        console.log(`\n⚠️  Missing Coverage:`);
+        for (const missing of result.testPlan.coverage.mustHavesMissing) {
+          console.log(`   - ${missing}`);
+        }
+      }
+
+      // Flags
+      if (result.flags.length > 0) {
+        console.log(`\n🚩 Flags:`);
+        for (const flag of result.flags) {
+          const icon = { critical: '🔴', warning: '🟡', info: '🔵' }[flag.severity];
+          console.log(`   ${icon} [${flag.severity}] ${flag.message}`);
+          if (flag.suggestion) {
+            console.log(`      → ${flag.suggestion}`);
+          }
+        }
+      }
+
+      // Summary
+      console.log(`\n📋 Summary: ${result.summary}`);
+      console.log(`\n🚦 Ready to continue: ${result.readyToContinue ? 'YES' : 'NO'}`);
+      console.log('');
+
+      process.exit(result.readyToContinue ? 0 : 1);
+    } catch (error) {
+      console.error('Verification failed:', error);
+      process.exit(1);
+    }
+  });
+
+program
   .command('status')
   .description('Show pipeline status')
   .action(() => {
