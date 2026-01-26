@@ -23,6 +23,7 @@ import { getDashboardHtml } from './dashboard.js';
 import { AutoHook, createGitHook } from './autoHook.js';
 import { verify } from './verificationAgent.js';
 import { verifyAndFix, runAutoFix, autoFixEvents } from './autoFix.js';
+import { exploreApp } from './explorer.js';
 import {
   validateWebhookAuth,
   validateProjectRoot,
@@ -213,6 +214,48 @@ app.post('/api/verify-ui', async (req, res) => {
     console.error('[verify-ui] Error:', error);
     res.status(500).json({
       error: error instanceof Error ? error.message : 'Verification failed',
+    });
+  }
+});
+
+// === EXPLORE MODE ===
+// Just opens your app and clicks around to find bugs. No plans, no commits.
+
+app.post('/api/explore', async (req, res) => {
+  const baseUrl = validateUrl(req.body.baseUrl);
+  if (!baseUrl) {
+    res.status(400).json({ error: 'baseUrl is required (e.g., http://localhost:5180)' });
+    return;
+  }
+
+  const maxActions = validateInt(req.body.maxActions, 5, 50, 15);
+
+  console.log(`[explore] Starting exploration of ${baseUrl}`);
+  console.log(`[explore] Max actions: ${maxActions}`);
+
+  try {
+    const result = await exploreApp({
+      baseUrl,
+      maxActions,
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      headless: true,
+    });
+
+    console.log(`[explore] Complete: ${result.summary}`);
+
+    res.json({
+      success: result.success,
+      summary: result.summary,
+      actionsPerformed: result.actionsPerformed,
+      errorsFound: result.errorsFound,
+      consoleErrors: result.consoleErrors,
+      actions: result.actions,
+      screenshots: result.screenshots,
+    });
+  } catch (error) {
+    console.error('[explore] Error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Exploration failed',
     });
   }
 });

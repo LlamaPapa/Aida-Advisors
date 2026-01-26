@@ -223,19 +223,22 @@ export function getDashboardHtml(): string {
               <input type="text" id="baseUrl" placeholder="http://localhost:5180" />
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn" id="btnExplore" onclick="exploreApp()" style="background: #238636; font-weight: bold;">Explore App</button>
               <button class="btn btn-primary" id="btnRun" onclick="runPipeline()">Build Check</button>
-              <button class="btn" id="btnVerify" onclick="verifyUI()" style="background: #8957e5;">Verify UI</button>
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: #8b949e;">
+              Explore = Click around and find bugs. Build Check = Compile code.
             </div>
           </div>
         </div>
 
-        <div class="card" style="margin-bottom: 20px;" id="verifyResultsCard" style="display: none;">
+        <div class="card" style="margin-bottom: 20px;" id="exploreResultsCard">
           <div class="card-header">
-            <span>UI Verification Results</span>
-            <span id="verifyStatus" class="status-badge status-idle">-</span>
+            <span>Exploration Results</span>
+            <span id="exploreStatus" class="status-badge status-idle">-</span>
           </div>
-          <div class="card-body" id="verifyResults">
-            <div style="color: #8b949e; font-size: 14px;">Run "Verify UI" to analyze code and test the UI</div>
+          <div class="card-body" id="exploreResults">
+            <div style="color: #8b949e; font-size: 14px;">Click "Explore App" to have AI click through your app and find bugs</div>
           </div>
         </div>
 
@@ -392,6 +395,106 @@ export function getDashboardHtml(): string {
           </div>
         </div>
       \`).join('');
+    }
+
+    async function exploreApp() {
+      const baseUrl = document.getElementById('baseUrl').value;
+      if (!baseUrl) {
+        alert('Please enter the App URL (e.g., http://localhost:5180)');
+        return;
+      }
+
+      const resultsCard = document.getElementById('exploreResultsCard');
+      const resultsEl = document.getElementById('exploreResults');
+      const statusEl = document.getElementById('exploreStatus');
+
+      resultsCard.style.display = 'block';
+      resultsEl.innerHTML = '<div style="color: #58a6ff;">🔍 Opening app and clicking around... This may take a minute.</div>';
+      statusEl.textContent = 'Running';
+      statusEl.className = 'status-badge status-running';
+
+      addLog('Starting exploration of ' + baseUrl, 'info');
+
+      try {
+        const res = await fetch('/api/explore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ baseUrl, maxActions: 15 })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          statusEl.textContent = 'Error';
+          statusEl.className = 'status-badge status-failed';
+          resultsEl.innerHTML = '<div style="color: #f85149;">Error: ' + data.error + '</div>';
+          addLog('Exploration failed: ' + data.error, 'stderr');
+          return;
+        }
+
+        // Update status
+        statusEl.textContent = data.success ? 'PASS' : 'ISSUES';
+        statusEl.className = 'status-badge status-' + (data.success ? 'success' : 'failed');
+
+        // Build results HTML
+        let html = '<div style="font-size: 13px;">';
+
+        // Summary
+        html += '<div style="margin-bottom: 12px; padding: 10px; background: #21262d; border-radius: 4px;">';
+        html += '<strong>' + data.summary + '</strong>';
+        html += '</div>';
+
+        // Actions performed
+        if (data.actions && data.actions.length > 0) {
+          html += '<div style="margin-bottom: 12px;"><strong>Actions (' + data.actions.length + '):</strong></div>';
+          html += '<div style="max-height: 200px; overflow-y: auto;">';
+          data.actions.forEach((a, i) => {
+            const icon = a.success ? '✅' : '❌';
+            html += '<div style="padding: 4px 0; border-bottom: 1px solid #30363d;">';
+            html += icon + ' ' + a.description;
+            if (a.error) html += '<br><span style="color: #f85149; font-size: 12px;">  ' + a.error + '</span>';
+            html += '</div>';
+          });
+          html += '</div>';
+        }
+
+        // Errors found
+        if (data.errorsFound && data.errorsFound.length > 0) {
+          html += '<div style="margin: 12px 0;"><strong style="color: #f85149;">Errors Found (' + data.errorsFound.length + '):</strong></div>';
+          data.errorsFound.forEach(e => {
+            html += '<div style="padding: 4px 0; color: #f85149;">🚨 ' + e + '</div>';
+          });
+        }
+
+        // Console errors
+        if (data.consoleErrors && data.consoleErrors.length > 0) {
+          html += '<div style="margin: 12px 0;"><strong style="color: #d29922;">Console Errors (' + data.consoleErrors.length + '):</strong></div>';
+          data.consoleErrors.slice(0, 5).forEach(e => {
+            html += '<div style="padding: 4px 0; color: #d29922; font-size: 12px;">⚠️ ' + e.slice(0, 100) + '</div>';
+          });
+          if (data.consoleErrors.length > 5) {
+            html += '<div style="color: #8b949e;">...and ' + (data.consoleErrors.length - 5) + ' more</div>';
+          }
+        }
+
+        // Success message
+        if (data.success) {
+          html += '<div style="margin-top: 12px; padding: 10px; background: #23863633; border-radius: 4px; color: #7ee787;">';
+          html += '✅ No critical issues found!';
+          html += '</div>';
+        }
+
+        html += '</div>';
+        resultsEl.innerHTML = html;
+
+        addLog('Exploration complete: ' + data.summary, data.success ? 'stdout' : 'stderr');
+
+      } catch (err) {
+        statusEl.textContent = 'Error';
+        statusEl.className = 'status-badge status-failed';
+        resultsEl.innerHTML = '<div style="color: #f85149;">Failed: ' + err.message + '</div>';
+        addLog('Exploration error: ' + err.message, 'stderr');
+      }
     }
 
     async function runPipeline() {
