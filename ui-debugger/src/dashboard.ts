@@ -390,7 +390,17 @@ export function getDashboardHtml(): string {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ projectRoot })
         });
-        const data = await res.json();
+
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          console.error('Response was not JSON:', text);
+          alert('Server error: ' + (res.status === 404 ? 'API endpoint not found' : 'Invalid response from server'));
+          return;
+        }
+
         if (!res.ok) {
           alert('Error: ' + data.error);
         }

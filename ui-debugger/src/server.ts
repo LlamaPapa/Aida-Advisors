@@ -434,6 +434,17 @@ app.get('/api/auto-fix/events', (req, res) => {
   });
 });
 
+// API 404 handler - must be after all /api routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.path}` });
+});
+
+// Catch-all for SPA - return dashboard for non-API routes
+app.get('*', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getDashboardHtml());
+});
+
 app.listen(PORT, () => {
   console.log('');
   console.log('🔧 Debug Pipeline Server');
