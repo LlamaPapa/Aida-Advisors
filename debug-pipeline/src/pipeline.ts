@@ -3,9 +3,10 @@
  *
  * The brain that ties everything together:
  * 1. Runs build → captures output
- * 2. On failure → Claude Opus 4.5 analyzes
+ * 2. On failure → Claude Opus 4.5 analyzes (with file context)
  * 3. Generates fix prompt → optionally spawns Claude Code
- * 4. Verifies fix → loops until success or max attempts
+ * 4. Git: snapshots before, commits after, rollback on failure
+ * 5. Verifies fix → loops until success or max attempts
  */
 
 import { spawn, execSync } from 'child_process';
@@ -22,6 +23,16 @@ import {
   FixAttempt,
 } from './types.js';
 import { analyzeFailure, generateFixPrompt } from './analyzer.js';
+import {
+  getGitStatus,
+  createSnapshot,
+  getDiff,
+  getChangedFiles,
+  commitChanges,
+  rollback,
+  discardChanges,
+  GitSnapshot,
+} from './git.js';
 
 // Event emitter for real-time updates
 export const pipelineEvents = new EventEmitter();
@@ -49,6 +60,9 @@ const DEFAULTS = {
   runTests: true,
   timeout: 300000,
   useClaudeCode: true,
+  gitEnabled: true,
+  gitCommitFixes: true,
+  gitBranchPrefix: 'debug-pipeline',
 };
 
 export function getState(): PipelineState {
@@ -197,6 +211,21 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
 
   pipelineEvents.emit('start', run);
 
+  // Git setup
+  let gitSnapshot: GitSnapshot | null = null;
+  const gitStatus = cfg.gitEnabled ? getGitStatus(cfg.projectRoot) : null;
+
+  if (gitStatus?.isRepo) {
+    log(run, `Git repo detected on branch: ${gitStatus.branch}`, cfg);
+    if (gitStatus.hasChanges) {
+      log(run, `Warning: ${gitStatus.changedFiles.length} uncommitted changes`, cfg);
+    }
+    gitSnapshot = createSnapshot(cfg.projectRoot);
+    if (gitSnapshot) {
+      log(run, `Created snapshot at ${gitSnapshot.commitHash.slice(0, 8)}`, cfg);
+    }
+  }
+
   try {
     // === PHASE 1: BUILD ===
     log(run, `Starting build: ${cfg.buildCommand}`, cfg);
@@ -218,17 +247,21 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
       state.stats.totalFixAttempts++;
       log(run, `Build failed. Fix attempt ${fixAttempt}/${cfg.maxFixAttempts}`, cfg);
 
-      // Analyze failure
+      // Analyze failure (now with file context!)
       updateStage(run, 'analyzing', cfg);
-      log(run, 'Analyzing failure with Claude Opus 4.5...', cfg);
+      log(run, 'Analyzing failure with Claude Opus 4.5 (with source context)...', cfg);
 
       const analysis = await analyzeFailure(
         'build',
         buildResult.stderr + '\n' + buildResult.stdout,
-        cfg.anthropicApiKey
+        cfg.anthropicApiKey,
+        cfg.projectRoot  // Pass projectRoot for file context
       );
 
       log(run, `Analysis: ${analysis.hypotheses.length} hypotheses, confidence: ${analysis.confidence}`, cfg);
+      if (analysis.rootCause?.file) {
+        log(run, `Root cause: ${analysis.rootCause.file}:${analysis.rootCause.line || '?'} - ${analysis.rootCause.description}`, cfg);
+      }
 
       // Generate fix prompt
       updateStage(run, 'fixing', cfg);
@@ -252,6 +285,30 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
         log(run, `FIX PROMPT:\n${fixPrompt}`, cfg);
       }
 
+      // Track git changes
+      let commitHash: string | undefined;
+      let filesDiff: string | undefined;
+      let filesChanged: string[] | undefined;
+
+      if (gitStatus?.isRepo && cfg.gitEnabled) {
+        filesChanged = getChangedFiles(cfg.projectRoot);
+        filesDiff = getDiff(cfg.projectRoot);
+
+        if (filesChanged.length > 0) {
+          log(run, `Changed files: ${filesChanged.join(', ')}`, cfg);
+
+          if (cfg.gitCommitFixes) {
+            commitHash = commitChanges(
+              cfg.projectRoot,
+              `[debug-pipeline] Fix attempt ${fixAttempt}: ${analysis.hypotheses[0]?.description?.slice(0, 50) || 'auto-fix'}`
+            ) || undefined;
+            if (commitHash) {
+              log(run, `Committed fix: ${commitHash.slice(0, 8)}`, cfg);
+            }
+          }
+        }
+      }
+
       // Verify fix
       updateStage(run, 'verifying', cfg);
       log(run, 'Verifying fix...', cfg);
@@ -263,20 +320,28 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
         msg => log(run, msg, cfg)
       );
 
-      run.fixAttempts.push({
+      const fixAttemptRecord: FixAttempt = {
         attempt: fixAttempt,
         analysis,
         fixPrompt,
         claudeCodeOutput: claudeOutput,
         result: buildResult,
         timestamp: new Date().toISOString(),
-      });
+        commitHash,
+        filesDiff,
+        filesChanged,
+      };
 
+      run.fixAttempts.push(fixAttemptRecord);
       run.buildResult = buildResult;
 
       if (buildResult.success) {
         state.stats.successfulFixes++;
         log(run, `Build FIXED on attempt ${fixAttempt}!`, cfg);
+      } else if (gitSnapshot && cfg.gitEnabled && !cfg.gitCommitFixes) {
+        // Rollback if fix didn't work and we're not committing
+        log(run, 'Fix failed, discarding changes...', cfg);
+        discardChanges(cfg.projectRoot);
       }
     }
 
@@ -287,6 +352,12 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
       run.summary = `Build failed. ${fixAttempt} fix attempts made.`;
       state.stats.failedRuns++;
       log(run, `PIPELINE FAILED: ${run.error}`, cfg);
+
+      // Offer rollback info
+      if (gitSnapshot) {
+        log(run, `To rollback: git reset --hard ${gitSnapshot.commitHash}`, cfg);
+      }
+
       return finishRun(run);
     }
 
@@ -313,12 +384,13 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
         log(run, `Tests failed. Fix attempt ${fixAttempt}/${cfg.maxFixAttempts}`, cfg);
 
         updateStage(run, 'analyzing', cfg);
-        log(run, 'Analyzing test failure with Claude Opus 4.5...', cfg);
+        log(run, 'Analyzing test failure with Claude Opus 4.5 (with source context)...', cfg);
 
         const analysis = await analyzeFailure(
           'test',
           testResult.stderr + '\n' + testResult.stdout,
-          cfg.anthropicApiKey
+          cfg.anthropicApiKey,
+          cfg.projectRoot  // Pass projectRoot for file context
         );
 
         updateStage(run, 'fixing', cfg);
@@ -335,12 +407,36 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
           claudeOutput = await runClaudeCode(cfg.projectRoot, fixPrompt, cfg.claudeCodePath);
         }
 
+        // Track git changes
+        let commitHash: string | undefined;
+        let filesDiff: string | undefined;
+        let filesChanged: string[] | undefined;
+
+        if (gitStatus?.isRepo && cfg.gitEnabled) {
+          filesChanged = getChangedFiles(cfg.projectRoot);
+          filesDiff = getDiff(cfg.projectRoot);
+
+          if (filesChanged.length > 0 && cfg.gitCommitFixes) {
+            commitHash = commitChanges(
+              cfg.projectRoot,
+              `[debug-pipeline] Test fix ${fixAttempt}: ${analysis.hypotheses[0]?.description?.slice(0, 50) || 'auto-fix'}`
+            ) || undefined;
+            if (commitHash) {
+              log(run, `Committed test fix: ${commitHash.slice(0, 8)}`, cfg);
+            }
+          }
+        }
+
         // Re-verify build first
         updateStage(run, 'verifying', cfg);
         const rebuildResult = await executeCommand(cfg.buildCommand!, cfg.projectRoot, cfg.timeout!);
 
         if (!rebuildResult.success) {
-          log(run, 'Fix broke the build! Continuing...', cfg);
+          log(run, 'Fix broke the build! Rolling back...', cfg);
+          if (gitStatus?.isRepo && commitHash) {
+            // Rollback the bad commit
+            rollback(cfg.projectRoot, 'HEAD~1');
+          }
           continue;
         }
 
@@ -358,6 +454,9 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
           claudeCodeOutput: claudeOutput,
           result: testResult,
           timestamp: new Date().toISOString(),
+          commitHash,
+          filesDiff,
+          filesChanged,
         });
 
         run.testResult = testResult;
@@ -375,6 +474,11 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
         run.summary = `Tests failed. ${fixAttempt} fix attempts. Build OK.`;
         state.stats.failedRuns++;
         log(run, `PIPELINE FAILED: ${run.error}`, cfg);
+
+        if (gitSnapshot) {
+          log(run, `To rollback all fixes: git reset --hard ${gitSnapshot.commitHash}`, cfg);
+        }
+
         return finishRun(run);
       }
 
@@ -395,6 +499,11 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
     run.error = error instanceof Error ? error.message : 'Unknown error';
     state.stats.failedRuns++;
     log(run, `PIPELINE ERROR: ${run.error}`, cfg);
+
+    if (gitSnapshot) {
+      log(run, `To rollback: git reset --hard ${gitSnapshot.commitHash}`, cfg);
+    }
+
     return finishRun(run);
   }
 }
@@ -425,6 +534,13 @@ export function stopPipeline(): boolean {
 }
 
 /**
+ * Rollback to a specific commit
+ */
+export function rollbackToCommit(projectRoot: string, commitHash: string): boolean {
+  return rollback(projectRoot, commitHash);
+}
+
+/**
  * Auto-detect project and run pipeline
  */
 export async function quickRun(projectRoot: string, apiKey?: string): Promise<PipelineRun> {
@@ -446,5 +562,7 @@ export async function quickRun(projectRoot: string, apiKey?: string): Promise<Pi
     buildCommand,
     testCommand,
     anthropicApiKey: apiKey,
+    gitEnabled: true,
+    gitCommitFixes: true,
   });
 }

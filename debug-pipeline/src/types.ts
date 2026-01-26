@@ -16,6 +16,11 @@ export interface PipelineConfig {
   useClaudeCode?: boolean;
   claudeCodePath?: string;
   anthropicApiKey?: string;
+  // Git integration
+  gitEnabled?: boolean;
+  gitCommitFixes?: boolean;
+  gitBranchPrefix?: string;
+  // Callbacks
   onLog?: (message: string) => void;
   onStageChange?: (stage: PipelineStage) => void;
 }
@@ -54,6 +59,10 @@ export interface FixAttempt {
   claudeCodeOutput?: string;
   result: CommandResult;
   timestamp: string;
+  // Git tracking
+  commitHash?: string;
+  filesDiff?: string;
+  filesChanged?: string[];
 }
 
 export interface PipelineRun {

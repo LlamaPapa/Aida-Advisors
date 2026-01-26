@@ -16,4 +16,18 @@
 
 export * from './types.js';
 export * from './pipeline.js';
-export { analyzeFailure, generateFixPrompt } from './analyzer.js';
+export {
+  analyzeFailure,
+  generateFixPrompt,
+  extractFilePaths,
+  gatherFileContext,
+} from './analyzer.js';
+export {
+  getGitStatus,
+  createSnapshot,
+  getDiff,
+  getChangedFiles,
+  commitChanges,
+  rollback,
+  discardChanges,
+} from './git.js';
