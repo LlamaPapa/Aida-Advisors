@@ -2,58 +2,62 @@
 
 ## 2026-01-26
 
-### Auto-Hook Integration
-- Built autoHook.ts for automatic triggering
-- Webhook endpoint for vibecoder-roundtable integration
-- Git post-commit hook support (auto-installs)
-- File watcher with debouncing
-- Daemon CLI command for continuous monitoring
-- Server endpoints: `/api/hook/start`, `/api/hook/implementation`, etc.
+### Auto-Hook System
+Built automatic triggering so you don't have to manually run commands.
+
+- `autoHook.ts` - central orchestrator
+- Webhook endpoint for vibecoder to call after code gen
+- Git watcher (polls every 5s for new commits)
+- File watcher (debounced, ignores node_modules)
+- Daemon CLI command that runs continuously
 
 ### Test Data Agent
-- Built testDataAgent.ts for automated data generation
-- Supports CSV, JSON, users, products, images, custom
-- 20+ field types: name, email, phone, address, price, etc.
-- Claude generates custom data from descriptions
-- Integrated with UI tester: auto-generates files for uploads
+Tests often need data - CSVs to upload, users to log in with, etc.
+
+- `testDataAgent.ts` - generates data on demand
+- Field types: name, email, phone, address, price, date, etc.
+- Integrated with UI tester - when a test needs to upload a file, it auto-generates one
+- CLI command: `test-data --type users --count 50`
 
 ### Playwright Integration
-- Built uiTester.ts for real browser testing
+Real browser testing, not mocks.
+
+- `uiTester.ts` - Playwright wrapper
 - Claude translates natural language steps to Playwright actions
-- Smoke test: verify app loads
-- Full test suite: run scenarios from test plan
-- Screenshots captured at every step
+- "Click the login button" → `page.click('button:text("Login")')`
+- Screenshots after every step for debugging
 - Console errors collected and flagged
 
 ### Verification Agent
-- Built verificationAgent.ts for plan verification
-- Fetches plan from vibecoder-roundtable API
-- Compares git diff to plan requirements
-- Generates test scenarios with Claude
+Checks if what was built matches what was planned.
+
+- `verificationAgent.ts` - core logic
+- Fetches plan from vibecoder API (brief, mustHave, mustNot)
+- Compares to git diff (what actually changed)
+- Generates test scenarios based on changes
 - Produces flags: critical, warning, info
 
-### Renamed from debug-pipeline
-- Renamed folder from debug-pipeline to ui-debugger
-- Updated package name to @aida/ui-debugger
-- Updated CLI binary name
+### Renamed Project
+Was `debug-pipeline`, now `ui-debugger`.
 
 ## Architecture Decisions
 
-### Trigger System
-- Webhook-first: vibecoder calls us after code gen
-- Git watcher: polls every 5s for new commits
-- File watcher: debounced, ignores node_modules/dist
+### Why Playwright over Puppeteer?
+- Better API, better maintained
+- Cross-browser support if needed later
+- Better selector engine
 
-### Model Selection
-- Opus 4.5 for complex reasoning (test plans, error analysis)
-- Sonnet 4 for fast tasks (step translation, flag generation)
-- Cost-efficient: avoid Opus where Sonnet suffices
+### Why poll git instead of hook?
+- Git hooks require setup in each project
+- Polling is zero-config
+- 5s delay is acceptable for this use case
 
-### Test Data Strategy
-- Generate on demand, not pre-create
-- Schema-based: flexible field types
-- Upload actions auto-generate files
+### Why Claude for test translation?
+- Natural language steps are more readable
+- Claude handles ambiguity well
+- Can describe what you want, not how to do it
 
-## Ports
-
-- Server/Dashboard: 3002
+### Model choices
+- Opus for complex reasoning (test plans, error analysis)
+- Sonnet for structured output (step translation, flags)
+- Cost matters - don't use Opus where Sonnet works

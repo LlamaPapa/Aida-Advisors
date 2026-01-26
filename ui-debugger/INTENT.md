@@ -1,57 +1,47 @@
 # UI Debugger - Intent
 
-## Purpose
+## The Problem
 
-UI Debugger is a **proactive verification agent** that tests implementations before you continue building.
+AI writes code but doesn't verify it works. You end up:
+- Manually testing every change
+- Finding bugs after building more on top
+- Creating test data by hand
+- Going back and forth fixing issues that should have been caught
 
-## Problem Statement
+## The Solution
 
-When using AI coding assistants:
-- Code is generated but not tested against the original plan
-- UI issues aren't caught until manual testing
-- Build errors require back-and-forth debugging
-- Test data (CSVs, users, images) must be created manually
-- No automatic verification loop
+An agent that sits between "code generated" and "continue building" that:
+- Checks if the code matches what was planned
+- Actually runs the UI in a real browser
+- Generates whatever test data is needed
+- Flags issues before you waste time building more
 
-## Solution
+## How It Fits
 
-An autonomous agent that:
-1. **Reads the plan** from vibecoder-roundtable
-2. **Checks implementation** against plan requirements
-3. **Runs UI tests** with Playwright in real browser
-4. **Generates test data** on demand (CSV, JSON, users, images)
-5. **Flags issues** before you build more
-6. **Auto-fixes** build errors with Claude
+```
+vibecoder-roundtable     →     ui-debugger     →     continue building
+(plans + generates code)       (verifies it works)    (only if verified)
+```
 
-## Core Principles
+## Core Behavior
 
-### 1. Verification First
-Every implementation should be verified against:
-- The original plan (mustHave, mustNot)
-- Actual UI behavior (does it work?)
-- Console errors (no crashes)
+1. **Auto-trigger** - Don't wait for manual commands. Detect changes automatically.
+2. **Plan-aware** - Know what was supposed to be built, not just "does it compile"
+3. **Real browser** - Playwright, not unit tests. Click buttons, fill forms, see what happens.
+4. **Generate data** - Need a CSV to upload? Users to test with? Generate them.
+5. **Flag, don't block** - Report issues, let human decide what to do
 
-### 2. Automation Over Manual
-- Auto-trigger on git commits
-- Auto-generate test data
-- Auto-translate test steps to Playwright
-- Auto-fix build errors
+## What Success Looks Like
 
-### 3. Feedback Loop (Boris's #13)
-> "To get great results from Claude Code, give Claude a way to verify its work."
+After vibecoder finishes:
+- UI Debugger runs automatically
+- Tests the actual feature that was just built
+- Reports: "3 tests passed, 1 warning: button doesn't respond on mobile"
+- You fix before building the next thing
 
-This tool IS the verification feedback loop.
+## What This Is NOT
 
-## Success Criteria
-
-A verification pass when:
-- [ ] Implementation matches plan requirements
-- [ ] App loads without critical errors
-- [ ] UI tests pass
-- [ ] No critical flags raised
-
-## Non-Goals
-
-- This tool does NOT write application code
-- This tool does NOT replace human judgment on UX
-- This tool does NOT guarantee 100% coverage
+- Not a replacement for human QA
+- Not a unit test framework
+- Not guaranteed to catch everything
+- Not blocking - you can ignore and continue

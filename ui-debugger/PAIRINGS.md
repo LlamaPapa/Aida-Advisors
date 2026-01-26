@@ -1,81 +1,69 @@
 # UI Debugger - Pairings
 
-## File Pairings
+Files that work together. Change one, check the other.
 
-These files work together and should be considered as a unit when making changes.
-
-### Core Verification Flow
-- `src/autoHook.ts` ↔ `src/verificationAgent.ts`
-  - AutoHook triggers verification, passes plan
-- `src/verificationAgent.ts` ↔ `src/uiTester.ts`
-  - Verification generates test plan, UI tester executes it
-
-### UI Testing
-- `src/uiTester.ts` ↔ `src/testDataAgent.ts`
-  - UI tester calls test data agent for upload actions
-- `src/uiTester.ts` ↔ `src/verificationAgent.ts` (types)
-  - Shares TestPlan and VerificationResult types
-
-### Build Pipeline
-- `src/pipeline.ts` ↔ `src/analyzer.ts`
-  - Pipeline calls analyzer when build fails
-- `src/pipeline.ts` ↔ `src/git.ts`
-  - Pipeline uses git for snapshots and rollbacks
-
-### Server
-- `src/server.ts` ↔ `src/autoHook.ts`
-  - Server exposes webhook endpoints that use AutoHook
-- `src/server.ts` ↔ `src/dashboard.ts`
-  - Server serves dashboard HTML
-- `src/server.ts` ↔ `src/pipeline.ts`
-  - Server exposes pipeline run endpoints
-
-### CLI
-- `src/cli.ts` ↔ `src/autoHook.ts`
-  - CLI daemon command uses AutoHook
-- `src/cli.ts` ↔ `src/uiTester.ts`
-  - CLI ui-test/smoke commands use uiTester
-- `src/cli.ts` ↔ `src/testDataAgent.ts`
-  - CLI test-data command uses testDataAgent
-
-## Module Dependencies
+## Core Flow
 
 ```
-cli.ts
-  ├── autoHook.ts
-  │     └── verificationAgent.ts
-  │           └── uiTester.ts
-  │                 └── testDataAgent.ts
-  ├── pipeline.ts
-  │     ├── analyzer.ts
-  │     └── git.ts
-  ├── uiTester.ts
-  └── testDataAgent.ts
-
-server.ts
-  ├── autoHook.ts
-  ├── verificationAgent.ts
-  ├── pipeline.ts
-  └── dashboard.ts
+autoHook.ts → verificationAgent.ts → uiTester.ts
 ```
 
-## Type Dependencies
+When autoHook triggers, it calls verificationAgent.verify(), which calls uiTester.runUITests().
 
-- `src/types.ts` - Pipeline types (PipelineConfig, PipelineRun, etc.)
-- `src/verificationAgent.ts` - Verification types (ImplementationPlan, TestPlan, etc.)
-- `src/uiTester.ts` - UI test types (UITestConfig, UITestResult, etc.)
-- `src/testDataAgent.ts` - Data types (TestDataRequest, GeneratedTestData)
+## Verification + UI Testing
 
-## External Dependencies
+`verificationAgent.ts` ↔ `uiTester.ts`
+- verificationAgent generates TestPlan
+- uiTester consumes TestPlan
+- Both define scenario types (smoke, ui, integration)
 
-### vibecoder-roundtable
-- Fetches plan from `/api/intent/status`
-- Reports results to `/api/debug/report`
+## UI Testing + Test Data
 
-### Playwright
-- Used by uiTester.ts for browser automation
-- Requires: `npx playwright install chromium`
+`uiTester.ts` ↔ `testDataAgent.ts`
+- uiTester imports generateCSV, generatePlaceholderImage
+- When executeAction sees upload with generateFile, it calls testDataAgent
+- Both need to agree on file types (csv, json, image, text)
 
-### Anthropic SDK
-- Used by: verificationAgent, uiTester, testDataAgent, analyzer
-- Requires: ANTHROPIC_API_KEY env var
+## Build Pipeline
+
+`pipeline.ts` ↔ `analyzer.ts`
+- Pipeline calls analyzeFailure when build fails
+- Analyzer returns DebugAnalysis with fix suggestions
+- Pipeline uses analysis to construct fix prompt
+
+`pipeline.ts` ↔ `git.ts`
+- Pipeline calls createSnapshot before fixing
+- Pipeline calls commitChanges after successful fix
+- Pipeline uses getDiff to track what changed
+
+## Server + Everything
+
+`server.ts` imports:
+- autoHook (webhook endpoints)
+- verificationAgent (one-shot verify)
+- pipeline (build/fix endpoints)
+- dashboard (HTML)
+
+## CLI + Everything
+
+`cli.ts` imports:
+- autoHook (daemon command)
+- uiTester (ui-test, smoke commands)
+- testDataAgent (test-data command)
+- verificationAgent (verify command)
+- pipeline (run, watch commands)
+
+## Types
+
+`types.ts` - Pipeline types (PipelineConfig, PipelineRun, FixAttempt)
+`verificationAgent.ts` - Verification types (ImplementationPlan, TestPlan, VerificationResult)
+`uiTester.ts` - UI types (UITestConfig, UITestResult, PlaywrightAction)
+`testDataAgent.ts` - Data types (TestDataRequest, GeneratedTestData)
+
+No shared types file between modules - each defines its own.
+
+## External
+
+vibecoder-roundtable:
+- verificationAgent.fetchPlan() calls `/api/intent/status`
+- autoHook.reportResults() calls `/api/debug/report`

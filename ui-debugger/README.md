@@ -1,90 +1,79 @@
 # UI Debugger
 
-Autonomous UI verification agent that tests implementations against plans, runs Playwright tests, generates test data, and flags issues before you build more.
+Autonomous verification agent that checks if code matches the plan, runs real UI tests, and flags issues before you continue building.
 
 ## Quick Start
 
 ```bash
-# 1. Install dependencies
+cd ui-debugger
 npm install
 npx playwright install chromium
 
-# 2. Set up API key
-cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY
+# Set API key
+export ANTHROPIC_API_KEY=your-key
 
-# 3. Run daemon mode (recommended)
-npm run cli -- daemon ./your-project --base-url http://localhost:3000
+# Run in daemon mode (watches for changes)
+npm run cli -- daemon ../your-project --base-url http://localhost:3000
 ```
+
+## Commands
+
+```bash
+# Daemon - auto-triggers on git commits and file changes
+npm run cli -- daemon <project> --base-url <url>
+
+# Verify - one-shot check against plan
+npm run cli -- verify <project> --ui --base-url <url>
+
+# UI Test - run Playwright tests
+npm run cli -- ui-test <url>
+
+# Smoke - quick check if app loads
+npm run cli -- smoke <url>
+
+# Test Data - generate CSVs, users, products
+npm run cli -- test-data --type users --count 50
+npm run cli -- test-data --type csv --schema '{"name":"name","email":"email"}'
+
+# Server - HTTP API with dashboard
+npm run cli -- server
+
+# Pipeline - build/fix loop
+npm run cli -- run <project>
+```
+
+## Server API
+
+```bash
+# Start server
+npm run cli -- server
+
+# Trigger verification (called by vibecoder)
+curl -X POST http://localhost:3002/api/hook/implementation \
+  -H "Content-Type: application/json" \
+  -d '{"projectRoot": "/path/to/project"}'
+
+# Start daemon via API
+curl -X POST http://localhost:3002/api/hook/start \
+  -d '{"projectRoot": "/path", "baseUrl": "http://localhost:3000"}'
+```
+
+Dashboard: http://localhost:3002
 
 ## How It Works
 
+1. Vibecoder generates code
+2. UI Debugger auto-triggers (webhook, git commit, or file change)
+3. Reads the plan from vibecoder (what should have been built)
+4. Checks git diff (what was actually built)
+5. Generates test scenarios
+6. Runs Playwright in real browser
+7. Flags any issues
+8. Reports back
+
+## Environment
+
 ```
-Code Implemented → Auto-Triggered → Verify Plan → Run UI Tests → Flag Issues → Fix Before Building More
+ANTHROPIC_API_KEY=sk-ant-...
+PORT=3002
 ```
-
-1. **vibecoder-roundtable** implements code based on a plan
-2. **Auto-hook** detects the change (via webhook or git commit)
-3. **Verification Agent** checks: did they build what was planned?
-4. **Playwright** runs UI tests based on the implementation
-5. **Test Data Agent** auto-generates any CSV/JSON/images needed
-6. **Flags** any issues found
-7. **Pipeline** auto-fixes build errors if needed
-8. **Reports** back to roundtable
-
-## CLI Commands
-
-| Command | Description |
-|---------|-------------|
-| `daemon <project>` | Run continuously, auto-trigger on changes |
-| `verify <project>` | One-shot verification against plan |
-| `ui-test <url>` | Run UI tests against running app |
-| `smoke <url>` | Quick check if app loads |
-| `test-data` | Generate test CSV/JSON/users/products |
-| `run <project>` | Run build/fix pipeline |
-| `watch <project>` | Watch mode for builds |
-| `server` | HTTP server with dashboard |
-| `setup-hook <project>` | Install git post-commit hook |
-
-## Example Usage
-
-```bash
-# Daemon mode - watches and auto-tests
-npm run cli -- daemon ../vibecoder-roundtable/frontend \
-  --base-url http://localhost:5180 \
-  --roundtable http://localhost:3010
-
-# One-shot verification
-npm run cli -- verify ../my-project --ui --base-url http://localhost:3000
-
-# Quick smoke test
-npm run cli -- smoke http://localhost:3000
-
-# Generate test data
-npm run cli -- test-data --type users --count 50
-npm run cli -- test-data --type csv --schema '{"id":"id","name":"name","price":"price"}'
-```
-
-## API Endpoints (Server Mode)
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/run` | POST | Start build/fix pipeline |
-| `/api/hook/implementation` | POST | Webhook for vibecoder |
-| `/api/hook/start` | POST | Start auto-monitoring |
-| `/api/hook/stop` | POST | Stop auto-monitoring |
-| `/api/events` | GET | SSE stream for real-time updates |
-
-## Vibecoder Integration
-
-After vibecoder generates code, it calls:
-
-```bash
-curl -X POST http://localhost:3002/api/hook/implementation \
-  -H "Content-Type: application/json" \
-  -d '{"projectRoot": "/path/to/project", "plan": {...}}'
-```
-
-## Ports
-
-- Dashboard/API: 3002
