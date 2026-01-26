@@ -56,7 +56,7 @@ async function decideNextAction(
 ): Promise<{ action: string; selector: string; value?: string; description: string } | null> {
   const client = getClient(apiKey);
 
-  const prompt = `You are testing a web application. Based on the current page, decide what to do next.
+  const prompt = `You are testing a web application by clicking around and finding bugs.
 
 CURRENT URL: ${pageUrl}
 
@@ -66,31 +66,37 @@ ${previousActions.slice(-5).join('\n') || '(none yet)'}
 PAGE HTML (truncated):
 ${pageHtml.slice(0, 15000)}
 
-What should we test next? Pick ONE action:
-- click: Click a button, link, or interactive element
-- fill: Enter text in an input field
-- select: Choose from a dropdown
-- navigate: Go to a different page/section
-- done: Stop testing (we've covered enough)
+What should we test next? Pick ONE action.
 
-Respond in JSON:
+RESPOND IN THIS EXACT JSON FORMAT:
 {
-  "action": "click|fill|select|navigate|done",
-  "selector": "CSS selector or text content to find the element",
-  "value": "text to enter (for fill/select only)",
-  "description": "Human-readable description of what we're testing"
+  "action": "click",
+  "selector": "THE EXACT TEXT ON THE BUTTON OR LINK",
+  "value": "",
+  "description": "What we are testing"
 }
 
-Focus on:
-1. Main functionality (buttons, forms, navigation)
-2. User flows (login, submit, save)
-3. Interactive elements we haven't tested yet
-4. Don't repeat the same actions
+CRITICAL RULES FOR SELECTOR:
+- For buttons: Use the EXACT text shown on the button. Example: "Run Roundtable", "Load", "Submit"
+- For links: Use the EXACT link text. Example: "Settings", "Home", "About"
+- For inputs: Use the placeholder text or label. Example: "Enter project path", "Search"
+- NEVER use CSS selectors like .btn, .action-btn, #submit, [type=button]
+- NEVER use class names or IDs
+- Just use the human-readable text you see on the element
 
-IMPORTANT: For selector, use VISIBLE TEXT on buttons/links, not CSS classes. Examples:
-- "Load Project" not ".load-btn"
-- "Start Roundtable" not ".action-btn.roundtable"
-- "Submit" not "button[type=submit]"`;
+Actions:
+- click: Click something (button, link, tab)
+- fill: Type in an input field
+- navigate: Go somewhere
+- done: Stop testing
+
+Example good responses:
+{"action": "click", "selector": "Run Roundtable", "value": "", "description": "Testing the roundtable feature"}
+{"action": "click", "selector": "Load Project", "value": "", "description": "Testing project loading"}
+{"action": "fill", "selector": "project path", "value": "/test/path", "description": "Entering a test path"}
+{"action": "done", "selector": "", "value": "", "description": "Finished testing"}
+
+Look at the HTML and find buttons/links/inputs to interact with. Use their visible text.`;
 
   try {
     const response = await client.messages.create({
