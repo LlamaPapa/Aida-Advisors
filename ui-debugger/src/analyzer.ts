@@ -9,6 +9,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { DebugAnalysis } from './types.js';
+import { safeResolvePath } from './security.js';
 
 let client: Anthropic | null = null;
 
@@ -61,7 +62,11 @@ export function readFileWithLines(
   focusLine?: number
 ): string | null {
   try {
-    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(projectRoot, filePath);
+    // Use safe path resolution to prevent traversal attacks
+    const fullPath = safeResolvePath(filePath, projectRoot);
+    if (!fullPath) {
+      return null; // Path traversal attempted
+    }
 
     if (!fs.existsSync(fullPath)) {
       return null;

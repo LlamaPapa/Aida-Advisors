@@ -281,10 +281,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
             mustHave: doc.mustHave,
             mustNot: doc.mustNot,
             doneLooksLike: doc.expectedBehavior || 'Feature works as expected',
+            filesExpected: [...doc.filesCreated, ...doc.filesModified],
           },
           baseUrl: doc.baseUrl,
-          filesCreated: doc.filesCreated,
-          filesModified: doc.filesModified,
           apiKey: process.env.ANTHROPIC_API_KEY,
         });
 

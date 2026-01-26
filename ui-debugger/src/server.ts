@@ -7,7 +7,7 @@
 import { config } from 'dotenv';
 config();
 
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import {
   runPipeline,
@@ -18,9 +18,17 @@ import {
   getHistory,
   pipelineEvents,
 } from './pipeline.js';
+import type { PipelineConfig } from './types.js';
 import { getDashboardHtml } from './dashboard.js';
 import { AutoHook, createGitHook } from './autoHook.js';
 import { verify } from './verificationAgent.js';
+import {
+  validateWebhookAuth,
+  validateProjectRoot,
+  validateUrl,
+  validateInt,
+  validateBool,
+} from './security.js';
 
 // Global auto-hook instance
 let autoHook: AutoHook | null = null;
@@ -29,7 +37,16 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' })); // Limit request body size
+
+// Webhook authentication middleware
+const webhookAuth = (req: Request, res: Response, next: NextFunction): void => {
+  if (validateWebhookAuth(req.headers.authorization)) {
+    next();
+  } else {
+    res.status(401).json({ error: 'Unauthorized - set UI_DEBUGGER_WEBHOOK_SECRET or provide Bearer token' });
+  }
+};
 
 // === DASHBOARD ===
 app.get('/', (req, res) => {
@@ -67,27 +84,28 @@ app.post('/api/run', async (req, res) => {
     return;
   }
 
-  const { projectRoot } = req.body;
-
-  if (!projectRoot) {
-    res.status(400).json({ error: 'projectRoot is required' });
+  // Validate projectRoot
+  const validProjectRoot = validateProjectRoot(req.body.projectRoot);
+  if (!validProjectRoot) {
+    res.status(400).json({ error: 'projectRoot is required and must be an absolute path' });
     return;
   }
 
-  // Build config with only defined values (let pipeline use defaults)
-  const pipelineConfig: any = { projectRoot };
+  // Build config with validated values
+  const pipelineConfig: PipelineConfig = { projectRoot: validProjectRoot };
 
-  if (req.body.buildCommand) pipelineConfig.buildCommand = req.body.buildCommand;
-  if (req.body.testCommand) pipelineConfig.testCommand = req.body.testCommand;
-  if (req.body.lintCommand) pipelineConfig.lintCommand = req.body.lintCommand;
-  if (req.body.maxFixAttempts !== undefined) pipelineConfig.maxFixAttempts = req.body.maxFixAttempts;
-  if (req.body.autoFix !== undefined) pipelineConfig.autoFix = req.body.autoFix;
-  if (req.body.runLint !== undefined) pipelineConfig.runLint = req.body.runLint;
-  if (req.body.runTests !== undefined) pipelineConfig.runTests = req.body.runTests;
-  if (req.body.useClaudeCode !== undefined) pipelineConfig.useClaudeCode = req.body.useClaudeCode;
-  if (req.body.timeout !== undefined) pipelineConfig.timeout = req.body.timeout;
-  if (req.body.gitEnabled !== undefined) pipelineConfig.gitEnabled = req.body.gitEnabled;
-  if (req.body.gitCommitFixes !== undefined) pipelineConfig.gitCommitFixes = req.body.gitCommitFixes;
+  // Validate and sanitize optional fields
+  if (typeof req.body.buildCommand === 'string') pipelineConfig.buildCommand = req.body.buildCommand.slice(0, 500);
+  if (typeof req.body.testCommand === 'string') pipelineConfig.testCommand = req.body.testCommand.slice(0, 500);
+  if (typeof req.body.lintCommand === 'string') pipelineConfig.lintCommand = req.body.lintCommand.slice(0, 500);
+  pipelineConfig.maxFixAttempts = validateInt(req.body.maxFixAttempts, 0, 10, 3);
+  pipelineConfig.autoFix = validateBool(req.body.autoFix, false);
+  pipelineConfig.runLint = validateBool(req.body.runLint, true);
+  pipelineConfig.runTests = validateBool(req.body.runTests, true);
+  pipelineConfig.useClaudeCode = validateBool(req.body.useClaudeCode, false);
+  pipelineConfig.timeout = validateInt(req.body.timeout, 10000, 600000, 300000);
+  pipelineConfig.gitEnabled = validateBool(req.body.gitEnabled, true);
+  pipelineConfig.gitCommitFixes = validateBool(req.body.gitCommitFixes, false);
 
   // Start pipeline (don't await - return immediately)
   const runPromise = runPipeline(pipelineConfig);
@@ -239,11 +257,14 @@ app.post('/api/hook/stop', (req, res) => {
 });
 
 // Webhook for vibecoder-roundtable: implementation complete
-app.post('/api/hook/implementation', async (req, res) => {
+// Protected by webhook auth (set UI_DEBUGGER_WEBHOOK_SECRET to enable)
+app.post('/api/hook/implementation', webhookAuth, async (req, res) => {
   const { projectRoot, plan, sessionId, commitHash } = req.body;
 
-  if (!projectRoot) {
-    res.status(400).json({ error: 'projectRoot is required' });
+  // Validate projectRoot
+  const validProjectRoot = validateProjectRoot(projectRoot);
+  if (!validProjectRoot) {
+    res.status(400).json({ error: 'projectRoot is required and must be an absolute path' });
     return;
   }
 
@@ -252,7 +273,7 @@ app.post('/api/hook/implementation', async (req, res) => {
     if (autoHook) {
       const result = await autoHook.handleWebhook({
         type: 'implementation-complete',
-        projectRoot,
+        projectRoot: validProjectRoot,
         plan,
         sessionId,
         commitHash,
@@ -269,7 +290,7 @@ app.post('/api/hook/implementation', async (req, res) => {
 
     // Otherwise, run one-shot verification
     const result = await verify({
-      projectRoot,
+      projectRoot: validProjectRoot,
       plan,
       sinceCommit: commitHash || 'HEAD~1',
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -288,8 +309,15 @@ app.post('/api/hook/implementation', async (req, res) => {
 });
 
 // Webhook for git commits (called by post-commit hook)
-app.post('/api/hook/commit', async (req, res) => {
-  const { commitHash, changedFiles } = req.body;
+// Protected by webhook auth (set UI_DEBUGGER_WEBHOOK_SECRET to enable)
+app.post('/api/hook/commit', webhookAuth, async (req, res) => {
+  const { commitHash } = req.body;
+
+  // Validate commit hash format if provided
+  if (commitHash && !/^[a-f0-9]{7,40}$/i.test(commitHash)) {
+    res.status(400).json({ error: 'Invalid commit hash format' });
+    return;
+  }
 
   if (autoHook) {
     const result = await autoHook.handleWebhook({

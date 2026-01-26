@@ -9,6 +9,7 @@
  */
 
 import { execSync } from 'child_process';
+import { escapeGitMessage } from './security.js';
 
 export interface GitStatus {
   isRepo: boolean;
@@ -104,8 +105,10 @@ export function getChangedFiles(cwd: string): string[] {
  */
 export function commitChanges(cwd: string, message: string): string | null {
   try {
+    // Escape the message to prevent shell injection
+    const safeMessage = escapeGitMessage(message);
     execSync('git add -A', { cwd, stdio: 'pipe' });
-    execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { cwd, stdio: 'pipe' });
+    execSync(`git commit -m "${safeMessage}"`, { cwd, stdio: 'pipe' });
     const hash = execSync('git rev-parse HEAD', { cwd, encoding: 'utf-8', stdio: 'pipe' }).trim();
     return hash;
   } catch {
@@ -118,6 +121,11 @@ export function commitChanges(cwd: string, message: string): string | null {
  */
 export function rollback(cwd: string, commitHash: string): boolean {
   try {
+    // Validate commit hash format (40 hex chars or short hash 7-40 chars)
+    if (!/^[a-f0-9]{7,40}$/i.test(commitHash)) {
+      console.warn('[Git] Invalid commit hash format:', commitHash);
+      return false;
+    }
     execSync(`git reset --hard ${commitHash}`, { cwd, stdio: 'pipe' });
     return true;
   } catch {
