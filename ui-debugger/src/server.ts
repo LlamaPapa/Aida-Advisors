@@ -35,7 +35,7 @@ import {
 let autoHook: AutoHook | null = null;
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3020;
 
 app.use(cors());
 app.use(express.json({ limit: '1mb' })); // Limit request body size
