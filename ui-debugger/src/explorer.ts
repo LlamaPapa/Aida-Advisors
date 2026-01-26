@@ -1,14 +1,15 @@
 /**
- * UI Explorer
+ * UI Explorer v2
  *
- * No plans, no commits, no bullshit.
- * Just opens your app and clicks around to find bugs.
+ * Opens your app, scans for interactive elements, clicks around, finds bugs.
+ * Now with proper element scanning instead of raw HTML parsing.
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser, Page, BrowserContext } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import { scanPage, formatInventoryForPrompt, PageInventory } from './elementScanner.js';
 
 export interface ExploreResult {
   success: boolean;
@@ -46,57 +47,46 @@ function getClient(apiKey?: string): Anthropic {
 }
 
 /**
- * Ask Claude what to do next based on the current page
+ * Ask Claude what to do next based on scanned page elements
  */
 async function decideNextAction(
-  pageHtml: string,
-  pageUrl: string,
+  inventory: PageInventory,
   previousActions: string[],
   apiKey?: string
 ): Promise<{ action: string; selector: string; value?: string; description: string } | null> {
   const client = getClient(apiKey);
 
-  const prompt = `You are testing a web application by clicking around and finding bugs.
+  const inventoryText = formatInventoryForPrompt(inventory);
 
-CURRENT URL: ${pageUrl}
+  const prompt = `You are testing a web application. Here are the interactive elements on the current page:
+
+${inventoryText}
 
 PREVIOUS ACTIONS:
 ${previousActions.slice(-5).join('\n') || '(none yet)'}
 
-PAGE HTML (truncated):
-${pageHtml.slice(0, 15000)}
+Pick ONE element to interact with. Choose from the lists above.
 
-What should we test next? Pick ONE action.
-
-RESPOND IN THIS EXACT JSON FORMAT:
+RESPOND IN JSON:
 {
-  "action": "click",
-  "selector": "THE EXACT TEXT ON THE BUTTON OR LINK",
-  "value": "",
-  "description": "What we are testing"
+  "action": "click|fill|done",
+  "selector": "EXACT text from the lists above",
+  "value": "text to type (only for fill)",
+  "description": "what we are testing"
 }
 
-CRITICAL RULES FOR SELECTOR:
-- For buttons: Use the EXACT text shown on the button. Example: "Run Roundtable", "Load", "Submit"
-- For links: Use the EXACT link text. Example: "Settings", "Home", "About"
-- For inputs: Use the placeholder text or label. Example: "Enter project path", "Search"
-- NEVER use CSS selectors like .btn, .action-btn, #submit, [type=button]
-- NEVER use class names or IDs
-- Just use the human-readable text you see on the element
+RULES:
+- For "selector", copy the EXACT text from the BUTTONS, LINKS, or INPUT FIELDS lists above
+- For inputs, use the placeholder/label text from INPUT FIELDS list
+- Don't make up elements - only use what's listed above
+- Say "done" when you've tested the main features
 
-Actions:
-- click: Click something (button, link, tab)
-- fill: Type in an input field
-- navigate: Go somewhere
-- done: Stop testing
+Example:
+If BUTTONS shows: - "Load Project"
+Then respond: {"action": "click", "selector": "Load Project", "value": "", "description": "Testing project loading"}
 
-Example good responses:
-{"action": "click", "selector": "Run Roundtable", "value": "", "description": "Testing the roundtable feature"}
-{"action": "click", "selector": "Load Project", "value": "", "description": "Testing project loading"}
-{"action": "fill", "selector": "project path", "value": "/test/path", "description": "Entering a test path"}
-{"action": "done", "selector": "", "value": "", "description": "Finished testing"}
-
-Look at the HTML and find buttons/links/inputs to interact with. Use their visible text.`;
+If INPUT FIELDS shows: - Enter project path
+Then respond: {"action": "fill", "selector": "Enter project path", "value": "/test/path", "description": "Testing path input"}`;
 
   try {
     const response = await client.messages.create({
@@ -294,10 +284,22 @@ export async function exploreApp(config: ExploreConfig): Promise<ExploreResult> 
     console.log(`[explorer] Starting exploration of ${baseUrl}`);
 
     browser = await chromium.launch({ headless });
+
+    // Create context with video recording
+    const videoDir = path.join(screenshotDir, 'videos');
+    if (!fs.existsSync(videoDir)) {
+      fs.mkdirSync(videoDir, { recursive: true });
+    }
+
     const context = await browser.newContext({
       viewport: { width: 1280, height: 720 },
+      recordVideo: {
+        dir: videoDir,
+        size: { width: 1280, height: 720 },
+      },
     });
     const page = await context.newPage();
+    let videoPath: string | undefined;
 
     // Collect console errors
     page.on('console', msg => {
@@ -350,12 +352,12 @@ export async function exploreApp(config: ExploreConfig): Promise<ExploreResult> 
       actionCount++;
       console.log(`[explorer] Action ${actionCount}/${maxActions}`);
 
-      // Get current page state
-      const html = await page.content();
-      const url = page.url();
+      // Scan page for interactive elements
+      const inventory = await scanPage(page);
+      console.log(`[explorer] Found: ${inventory.buttons.length} buttons, ${inventory.links.length} links, ${inventory.inputs.length} inputs`);
 
-      // Ask Claude what to do
-      const nextAction = await decideNextAction(html, url, previousActions, apiKey);
+      // Ask Claude what to do based on scanned elements
+      const nextAction = await decideNextAction(inventory, previousActions, apiKey);
 
       if (!nextAction || nextAction.action === 'done') {
         console.log('[explorer] Claude says we are done exploring');
@@ -388,16 +390,25 @@ export async function exploreApp(config: ExploreConfig): Promise<ExploreResult> 
       await page.waitForTimeout(500);
     }
 
+    // Get video path before closing context
+    videoPath = await page.video()?.path();
     await context.close();
+
+    // Log video location
+    if (videoPath) {
+      console.log(`[explorer] Video saved: ${videoPath}`);
+      screenshots.push(videoPath); // Include video in artifacts
+    }
 
     // Generate summary
     const successCount = actions.filter(a => a.success).length;
     const summary = [
       `Explored ${baseUrl}`,
       `${actions.length} actions performed (${successCount} successful)`,
-      `${consoleErrors.length} console errors`,
+      `${consoleErrors.length} console/network errors`,
       `${errorsFound.length} issues found`,
-    ].join(' | ');
+      videoPath ? `Video: ${path.basename(videoPath)}` : '',
+    ].filter(Boolean).join(' | ');
 
     console.log(`[explorer] Done: ${summary}`);
 
