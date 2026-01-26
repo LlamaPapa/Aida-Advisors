@@ -53,10 +53,12 @@ const state: PipelineState = {
 
 // Defaults
 const DEFAULTS = {
+  lintCommand: 'npm run lint',
   buildCommand: 'npm run build',
   testCommand: 'npm test',
   maxFixAttempts: 3,
   autoFix: true,
+  runLint: false,  // Off by default since not all projects have lint
   runTests: true,
   timeout: 300000,
   useClaudeCode: true,
@@ -239,6 +241,105 @@ export async function runPipeline(config: PipelineConfig): Promise<PipelineRun> 
   }
 
   try {
+    // === PHASE 0: LINT (optional) ===
+    if (cfg.runLint) {
+      log(run, `Starting lint: ${cfg.lintCommand}`, cfg);
+      updateStage(run, 'linting', cfg);
+
+      let lintResult = await executeCommand(
+        cfg.lintCommand!,
+        cfg.projectRoot,
+        cfg.timeout!,
+        msg => log(run, msg, cfg)
+      );
+
+      run.lintResult = lintResult;
+
+      // Lint failed - try to fix
+      let fixAttempt = 0;
+      while (!lintResult.success && fixAttempt < cfg.maxFixAttempts! && cfg.autoFix) {
+        fixAttempt++;
+        state.stats.totalFixAttempts++;
+        log(run, `Lint failed. Fix attempt ${fixAttempt}/${cfg.maxFixAttempts}`, cfg);
+
+        updateStage(run, 'analyzing', cfg);
+        log(run, 'Analyzing lint failure with Claude Opus 4.5...', cfg);
+
+        const analysis = await analyzeFailure(
+          'build',  // Use 'build' type for lint errors
+          lintResult.stderr + '\n' + lintResult.stdout,
+          cfg.anthropicApiKey,
+          cfg.projectRoot
+        );
+
+        updateStage(run, 'fixing', cfg);
+        const fixPrompt = await generateFixPrompt(
+          cfg.projectRoot,
+          lintResult.stderr + '\n' + lintResult.stdout,
+          analysis,
+          cfg.anthropicApiKey
+        );
+
+        let claudeOutput = '';
+        if (cfg.useClaudeCode) {
+          log(run, 'Running Claude Code to fix lint issues...', cfg);
+          claudeOutput = await runClaudeCode(cfg.projectRoot, fixPrompt, cfg.claudeCodePath);
+        }
+
+        // Track git changes
+        let commitHash: string | undefined;
+        let filesDiff: string | undefined;
+        let filesChanged: string[] | undefined;
+
+        if (gitStatus?.isRepo && cfg.gitEnabled) {
+          filesChanged = getChangedFiles(cfg.projectRoot);
+          filesDiff = getDiff(cfg.projectRoot);
+
+          if (filesChanged.length > 0 && cfg.gitCommitFixes) {
+            commitHash = commitChanges(
+              cfg.projectRoot,
+              `[debug-pipeline] Lint fix ${fixAttempt}: ${analysis.hypotheses[0]?.description?.slice(0, 50) || 'auto-fix'}`
+            ) || undefined;
+          }
+        }
+
+        // Verify fix
+        updateStage(run, 'verifying', cfg);
+        lintResult = await executeCommand(cfg.lintCommand!, cfg.projectRoot, cfg.timeout!);
+
+        run.fixAttempts.push({
+          attempt: fixAttempt,
+          analysis,
+          fixPrompt,
+          claudeCodeOutput: claudeOutput,
+          result: lintResult,
+          timestamp: new Date().toISOString(),
+          commitHash,
+          filesDiff,
+          filesChanged,
+        });
+
+        run.lintResult = lintResult;
+
+        if (lintResult.success) {
+          state.stats.successfulFixes++;
+          log(run, `Lint FIXED on attempt ${fixAttempt}!`, cfg);
+        }
+      }
+
+      if (!lintResult.success) {
+        run.status = 'failed';
+        run.success = false;
+        run.error = 'Lint failed after all fix attempts';
+        run.summary = `Lint failed. ${fixAttempt} fix attempts made.`;
+        state.stats.failedRuns++;
+        log(run, `PIPELINE FAILED: ${run.error}`, cfg);
+        return finishRun(run);
+      }
+
+      log(run, 'Lint passed!', cfg);
+    }
+
     // === PHASE 1: BUILD ===
     log(run, `Starting build: ${cfg.buildCommand}`, cfg);
     updateStage(run, 'building', cfg);

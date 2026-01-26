@@ -2,16 +2,20 @@
  * Debug Pipeline Types
  */
 
-export type PipelineStage = 'idle' | 'building' | 'testing' | 'analyzing' | 'fixing' | 'verifying' | 'complete' | 'failed';
+export type PipelineStage = 'idle' | 'linting' | 'building' | 'testing' | 'analyzing' | 'fixing' | 'verifying' | 'complete' | 'failed';
 
 export interface PipelineConfig {
   projectRoot: string;
   projectId?: string;
+  // Commands
+  lintCommand?: string;
   buildCommand?: string;
   testCommand?: string;
+  // Behavior
+  runLint?: boolean;
+  runTests?: boolean;
   maxFixAttempts?: number;
   autoFix?: boolean;
-  runTests?: boolean;
   timeout?: number;
   useClaudeCode?: boolean;
   claudeCodePath?: string;
@@ -70,6 +74,7 @@ export interface PipelineRun {
   projectId: string;
   projectRoot: string;
   status: PipelineStage;
+  lintResult?: CommandResult;
   buildResult?: CommandResult;
   testResult?: CommandResult;
   fixAttempts: FixAttempt[];

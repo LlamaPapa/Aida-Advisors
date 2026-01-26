@@ -5,12 +5,14 @@
  * Usage:
  *   debug-pipeline run ./my-project
  *   debug-pipeline run ./my-project --no-tests
- *   debug-pipeline run ./my-project --no-auto-fix
+ *   debug-pipeline watch ./my-project
  */
 
 import { program } from 'commander';
 import { config } from 'dotenv';
-import { runPipeline, quickRun, getState } from './pipeline.js';
+import { watch } from 'fs';
+import * as path from 'path';
+import { runPipeline, quickRun, getState, pipelineEvents } from './pipeline.js';
 
 // Load .env
 config();
@@ -23,16 +25,20 @@ program
 program
   .command('run <projectRoot>')
   .description('Run the debugging pipeline on a project')
+  .option('-l, --lint <command>', 'Lint command', 'npm run lint')
   .option('-b, --build <command>', 'Build command', 'npm run build')
   .option('-t, --test <command>', 'Test command', 'npm test')
+  .option('--run-lint', 'Enable linting phase')
   .option('--no-tests', 'Skip running tests')
   .option('--no-auto-fix', 'Disable automatic fixing')
   .option('--no-claude-code', 'Disable Claude Code execution (just print fix prompts)')
+  .option('--no-git', 'Disable git integration')
   .option('-m, --max-attempts <n>', 'Maximum fix attempts', '3')
   .option('-k, --api-key <key>', 'Anthropic API key (or use ANTHROPIC_API_KEY env var)')
   .action(async (projectRoot: string, options) => {
-    console.log('\\n🔧 Debug Pipeline - Powered by Claude Opus 4.5\\n');
+    console.log('\n🔧 Debug Pipeline - Powered by Claude Opus 4.5\n');
     console.log(`Project: ${projectRoot}`);
+    if (options.runLint) console.log(`Lint: ${options.lint}`);
     console.log(`Build: ${options.build}`);
     console.log(`Tests: ${options.tests ? options.test : 'disabled'}`);
     console.log(`Auto-fix: ${options.autoFix ? 'enabled' : 'disabled'}`);
@@ -41,19 +47,22 @@ program
 
     try {
       const result = await runPipeline({
-        projectRoot,
+        projectRoot: path.resolve(projectRoot),
+        lintCommand: options.lint,
         buildCommand: options.build,
         testCommand: options.test,
+        runLint: options.runLint || false,
         runTests: options.tests,
         autoFix: options.autoFix,
         useClaudeCode: options.claudeCode,
+        gitEnabled: options.git,
         maxFixAttempts: parseInt(options.maxAttempts),
         anthropicApiKey: options.apiKey,
         onLog: (msg) => console.log(msg),
-        onStageChange: (stage) => console.log(`\\n>>> Stage: ${stage.toUpperCase()}\\n`),
+        onStageChange: (stage) => console.log(`\n>>> Stage: ${stage.toUpperCase()}\n`),
       });
 
-      console.log('\\n' + '='.repeat(60));
+      console.log('\n' + '='.repeat(60));
       console.log('PIPELINE RESULT');
       console.log('='.repeat(60));
       console.log(`Status: ${result.success ? '✅ SUCCESS' : '❌ FAILED'}`);
@@ -71,18 +80,130 @@ program
   });
 
 program
+  .command('watch <projectRoot>')
+  .description('Watch for file changes and auto-run pipeline')
+  .option('-b, --build <command>', 'Build command', 'npm run build')
+  .option('-t, --test <command>', 'Test command', 'npm test')
+  .option('--no-tests', 'Skip running tests')
+  .option('--no-auto-fix', 'Disable automatic fixing')
+  .option('-d, --debounce <ms>', 'Debounce delay in ms', '1000')
+  .option('-k, --api-key <key>', 'Anthropic API key')
+  .action(async (projectRoot: string, options) => {
+    console.log('\n👁️  Debug Pipeline - Watch Mode\n');
+    console.log(`Project: ${path.resolve(projectRoot)}`);
+    console.log(`Build: ${options.build}`);
+    console.log(`Tests: ${options.tests ? options.test : 'disabled'}`);
+    console.log(`Debounce: ${options.debounce}ms`);
+    console.log('\nWatching for changes... (Ctrl+C to stop)\n');
+
+    const resolvedRoot = path.resolve(projectRoot);
+    const srcDir = path.join(resolvedRoot, 'src');
+    let debounceTimer: NodeJS.Timeout | null = null;
+    let isRunning = false;
+
+    const triggerPipeline = async () => {
+      if (isRunning) {
+        console.log('⏳ Pipeline already running, skipping...');
+        return;
+      }
+
+      isRunning = true;
+      console.log('\n' + '─'.repeat(60));
+      console.log(`🔄 Change detected - running pipeline at ${new Date().toLocaleTimeString()}`);
+      console.log('─'.repeat(60) + '\n');
+
+      try {
+        const result = await runPipeline({
+          projectRoot: resolvedRoot,
+          buildCommand: options.build,
+          testCommand: options.test,
+          runTests: options.tests,
+          autoFix: options.autoFix,
+          useClaudeCode: true,
+          gitEnabled: true,
+          gitCommitFixes: true,
+          anthropicApiKey: options.apiKey,
+          onLog: (msg) => console.log(msg),
+          onStageChange: (stage) => console.log(`>>> ${stage.toUpperCase()}`),
+        });
+
+        console.log('\n' + '─'.repeat(60));
+        if (result.success) {
+          console.log(`✅ SUCCESS in ${((result.duration || 0) / 1000).toFixed(1)}s`);
+        } else {
+          console.log(`❌ FAILED: ${result.error}`);
+        }
+        if (result.fixAttempts.length > 0) {
+          console.log(`🔧 ${result.fixAttempts.length} fix attempt(s)`);
+        }
+        console.log('─'.repeat(60));
+        console.log('\n👁️  Watching for more changes...\n');
+      } catch (error) {
+        console.error('Pipeline error:', error);
+      } finally {
+        isRunning = false;
+      }
+    };
+
+    const onChange = (eventType: string, filename: string | null) => {
+      if (!filename) return;
+
+      // Ignore non-source files
+      if (
+        filename.endsWith('.js') ||
+        filename.endsWith('.map') ||
+        filename.includes('node_modules') ||
+        filename.includes('.git') ||
+        filename.startsWith('.') ||
+        filename.includes('dist/')
+      ) {
+        return;
+      }
+
+      // Debounce
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+
+      debounceTimer = setTimeout(() => {
+        console.log(`📝 ${filename} ${eventType}`);
+        triggerPipeline();
+      }, parseInt(options.debounce));
+    };
+
+    // Watch src directory
+    try {
+      watch(srcDir, { recursive: true }, onChange);
+      console.log(`Watching: ${srcDir}`);
+    } catch {
+      // Fallback to watching project root if no src dir
+      watch(resolvedRoot, { recursive: true }, onChange);
+      console.log(`Watching: ${resolvedRoot}`);
+    }
+
+    // Run initial pipeline
+    await triggerPipeline();
+
+    // Keep process alive
+    process.on('SIGINT', () => {
+      console.log('\n\n👋 Stopping watch mode...\n');
+      process.exit(0);
+    });
+  });
+
+program
   .command('quick <projectRoot>')
   .description('Auto-detect project settings and run pipeline')
   .option('-k, --api-key <key>', 'Anthropic API key')
   .action(async (projectRoot: string, options) => {
-    console.log('\\n🔧 Debug Pipeline - Quick Run\\n');
+    console.log('\n🔧 Debug Pipeline - Quick Run\n');
     console.log(`Project: ${projectRoot}`);
-    console.log('Auto-detecting settings...\\n');
+    console.log('Auto-detecting settings...\n');
 
     try {
-      const result = await quickRun(projectRoot, options.apiKey);
+      const result = await quickRun(path.resolve(projectRoot), options.apiKey);
 
-      console.log('\\n' + '='.repeat(60));
+      console.log('\n' + '='.repeat(60));
       console.log(`Result: ${result.success ? '✅ SUCCESS' : '❌ FAILED'}`);
       console.log(`Duration: ${((result.duration || 0) / 1000).toFixed(1)}s`);
       if (result.summary) console.log(`Summary: ${result.summary}`);
@@ -100,7 +221,7 @@ program
   .description('Show pipeline status')
   .action(() => {
     const state = getState();
-    console.log('\\nPipeline Status:');
+    console.log('\nPipeline Status:');
     console.log(`  Running: ${state.isRunning}`);
     console.log(`  Total runs: ${state.stats.totalRuns}`);
     console.log(`  Successful: ${state.stats.successfulRuns}`);
