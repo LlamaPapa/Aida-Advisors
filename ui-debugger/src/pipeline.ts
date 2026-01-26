@@ -655,25 +655,69 @@ export function rollbackToCommit(projectRoot: string, commitHash: string): boole
 
 /**
  * Auto-detect project and run pipeline
+ * Checks package.json to see which scripts actually exist
  */
 export async function quickRun(projectRoot: string, apiKey?: string): Promise<PipelineRun> {
-  let buildCommand = 'npm run build';
-  let testCommand = 'npm test';
+  let buildCommand: string | undefined;
+  let testCommand: string | undefined;
+  let lintCommand: string | undefined;
+  let runLint = false;
+  let runTests = false;
 
   const pkgPath = path.join(projectRoot, 'package.json');
   if (fs.existsSync(pkgPath)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-      if (pkg.scripts?.build) buildCommand = 'npm run build';
-      if (pkg.scripts?.test) testCommand = 'npm test';
-      if (pkg.scripts?.['test:unit']) testCommand = 'npm run test:unit';
-    } catch {}
+      const scripts = pkg.scripts || {};
+
+      // Detect build command
+      if (scripts.build) {
+        buildCommand = 'npm run build';
+      } else if (scripts.compile) {
+        buildCommand = 'npm run compile';
+      } else if (scripts.tsc) {
+        buildCommand = 'npm run tsc';
+      }
+
+      // Detect test command
+      if (scripts.test && scripts.test !== 'echo "Error: no test specified" && exit 1') {
+        testCommand = 'npm test';
+        runTests = true;
+      } else if (scripts['test:unit']) {
+        testCommand = 'npm run test:unit';
+        runTests = true;
+      } else if (scripts['test:all']) {
+        testCommand = 'npm run test:all';
+        runTests = true;
+      }
+
+      // Detect lint command
+      if (scripts.lint) {
+        lintCommand = 'npm run lint';
+        runLint = true;
+      } else if (scripts.eslint) {
+        lintCommand = 'npm run eslint';
+        runLint = true;
+      }
+
+      // Log what we found
+      console.log(`[quickRun] Detected scripts: build=${!!scripts.build}, test=${runTests}, lint=${runLint}`);
+    } catch (e) {
+      console.log(`[quickRun] Could not parse package.json: ${e}`);
+    }
+  } else {
+    console.log(`[quickRun] No package.json found at ${pkgPath}`);
   }
 
   return runPipeline({
     projectRoot,
-    buildCommand,
-    testCommand,
+    buildCommand: buildCommand || 'npm run build',
+    testCommand: testCommand || 'npm test',
+    lintCommand: lintCommand || 'npm run lint',
+    runLint,
+    runTests,
+    autoFix: true,
+    useClaudeCode: true,
     anthropicApiKey: apiKey,
     gitEnabled: true,
     gitCommitFixes: true,

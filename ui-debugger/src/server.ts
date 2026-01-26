@@ -100,13 +100,13 @@ app.post('/api/run', async (req, res) => {
   if (typeof req.body.testCommand === 'string') pipelineConfig.testCommand = req.body.testCommand.slice(0, 500);
   if (typeof req.body.lintCommand === 'string') pipelineConfig.lintCommand = req.body.lintCommand.slice(0, 500);
   pipelineConfig.maxFixAttempts = validateInt(req.body.maxFixAttempts, 0, 10, 3);
-  pipelineConfig.autoFix = validateBool(req.body.autoFix, false);
-  pipelineConfig.runLint = validateBool(req.body.runLint, true);
-  pipelineConfig.runTests = validateBool(req.body.runTests, true);
-  pipelineConfig.useClaudeCode = validateBool(req.body.useClaudeCode, false);
+  pipelineConfig.autoFix = validateBool(req.body.autoFix, true);
+  pipelineConfig.runLint = validateBool(req.body.runLint, false);  // Off by default - not all projects have lint
+  pipelineConfig.runTests = validateBool(req.body.runTests, false);  // Off by default - detect automatically
+  pipelineConfig.useClaudeCode = validateBool(req.body.useClaudeCode, true);
   pipelineConfig.timeout = validateInt(req.body.timeout, 10000, 600000, 300000);
   pipelineConfig.gitEnabled = validateBool(req.body.gitEnabled, true);
-  pipelineConfig.gitCommitFixes = validateBool(req.body.gitCommitFixes, false);
+  pipelineConfig.gitCommitFixes = validateBool(req.body.gitCommitFixes, true);
 
   // Start pipeline (don't await - return immediately)
   const runPromise = runPipeline(pipelineConfig);

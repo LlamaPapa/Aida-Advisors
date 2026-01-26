@@ -385,7 +385,8 @@ export function getDashboardHtml(): string {
       }
 
       try {
-        const res = await fetch('/api/run', {
+        // Use quick-run to auto-detect which scripts exist in the project
+        const res = await fetch('/api/quick-run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ projectRoot })
