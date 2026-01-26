@@ -1,0 +1,9 @@
+# Railway deployment configuration
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
