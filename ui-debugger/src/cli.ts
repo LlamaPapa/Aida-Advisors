@@ -455,6 +455,101 @@ program
   });
 
 program
+  .command('test-data')
+  .description('Generate test data files (CSV, JSON, users, products, images)')
+  .option('-t, --type <type>', 'Data type: csv, json, users, products, image, custom', 'csv')
+  .option('-c, --count <n>', 'Number of records', '10')
+  .option('-o, --output <dir>', 'Output directory', './test-data')
+  .option('-f, --filename <name>', 'Output filename (without extension)')
+  .option('-s, --schema <json>', 'Schema for CSV/JSON (JSON string)')
+  .option('-d, --description <text>', 'Description for custom data generation')
+  .option('-k, --api-key <key>', 'Anthropic API key (for custom type)')
+  .action(async (options) => {
+    console.log('\n📦 Test Data Generator\n');
+
+    const { generateTestData, generateUsers, generateProducts } = await import('./testDataAgent.js');
+
+    const outputDir = path.resolve(options.output);
+    const count = parseInt(options.count);
+
+    try {
+      let result;
+
+      switch (options.type) {
+        case 'users':
+          console.log(`Generating ${count} test users...`);
+          result = await generateTestData(
+            { type: 'users', description: 'Test users', count, outputPath: options.filename },
+            outputDir
+          );
+          break;
+
+        case 'products':
+          console.log(`Generating ${count} test products...`);
+          result = await generateTestData(
+            { type: 'products', description: 'Test products', count, outputPath: options.filename },
+            outputDir
+          );
+          break;
+
+        case 'image':
+          console.log('Generating placeholder image...');
+          result = await generateTestData(
+            { type: 'image', description: 'Placeholder image', outputPath: options.filename },
+            outputDir
+          );
+          break;
+
+        case 'custom':
+          if (!options.description) {
+            console.error('Custom type requires --description');
+            process.exit(1);
+          }
+          console.log(`Generating custom data: ${options.description}`);
+          result = await generateTestData(
+            { type: 'custom', description: options.description, count, outputPath: options.filename },
+            outputDir,
+            options.apiKey
+          );
+          break;
+
+        case 'json':
+        case 'csv':
+        default:
+          let schema = { id: 'id', name: 'name', email: 'email', value: 'number' };
+          if (options.schema) {
+            try {
+              schema = JSON.parse(options.schema);
+            } catch {
+              console.error('Invalid schema JSON');
+              process.exit(1);
+            }
+          }
+          console.log(`Generating ${count} ${options.type.toUpperCase()} records...`);
+          console.log(`Schema: ${JSON.stringify(schema)}`);
+          result = await generateTestData(
+            { type: options.type as 'csv' | 'json', description: `${options.type} data`, schema, count, outputPath: options.filename },
+            outputDir
+          );
+          break;
+      }
+
+      console.log('\n✅ Generated successfully!');
+      console.log(`   Type: ${result.type}`);
+      console.log(`   Path: ${result.path}`);
+      if (result.rowCount) console.log(`   Rows: ${result.rowCount}`);
+      console.log('\nPreview:');
+      console.log('─'.repeat(40));
+      console.log(result.preview);
+      console.log('─'.repeat(40));
+      console.log('');
+    } catch (error) {
+      console.error('Generation failed:', error);
+      process.exit(1);
+    }
+  });
+
+program
   .command('status')
   .description('Show pipeline status')
   .action(() => {

@@ -10,10 +10,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { TestPlan, VerificationResult } from './verificationAgent.js';
+import { generateTestData, generateCSV, generatePlaceholderImage } from './testDataAgent.js';
 
 export interface UITestConfig {
   baseUrl: string;
   screenshotDir?: string;
+  testDataDir?: string;
   timeout?: number;
   headless?: boolean;
   apiKey?: string;
@@ -57,6 +59,13 @@ interface PlaywrightAction {
     type: 'visible' | 'hidden' | 'text' | 'value' | 'count' | 'url' | 'title';
     expected?: string | number;
   };
+  // For upload actions - auto-generate test data if needed
+  generateFile?: {
+    type: 'csv' | 'json' | 'image' | 'text';
+    schema?: Record<string, string>;
+    count?: number;
+    filename?: string;
+  };
 }
 
 let anthropicClient: Anthropic | null = null;
@@ -98,6 +107,12 @@ Respond with a JSON array of actions:
     "assertion": {
       "type": "visible|hidden|text|value|count|url|title",
       "expected": "expected value"
+    },
+    "generateFile": {
+      "type": "csv|json|image|text",
+      "schema": {"field1": "type", "field2": "type"},
+      "count": 10,
+      "filename": "test-data"
     }
   }
 ]
@@ -108,13 +123,26 @@ Rules:
 3. Add wait actions for dynamic content
 4. Include assertions to verify outcomes
 5. Keep it practical - translate intent, not literally
+6. For file uploads: use "generateFile" to auto-create test data
+   - Schema field types: id, name, email, phone, address, date, number, price, boolean, status, product, description, url, image
 
 Example selectors:
 - "button:has-text('Submit')"
 - "[data-testid='login-form']"
 - "input[name='email']"
 - "text=Welcome back"
-- "#main-content"`;
+- "#main-content"
+
+Example upload with generated CSV:
+{
+  "type": "upload",
+  "selector": "input[type='file']",
+  "generateFile": {
+    "type": "csv",
+    "schema": {"id": "id", "name": "name", "email": "email", "amount": "price"},
+    "count": 50
+  }
+}`;
 
   try {
     const response = await client.messages.create({
@@ -190,8 +218,54 @@ async function executeAction(
         break;
 
       case 'upload':
-        if (!action.selector || !action.value) throw new Error('Upload requires selector and value');
-        await page.setInputFiles(action.selector, action.value);
+        if (!action.selector) throw new Error('Upload requires selector');
+
+        let filePath = action.value;
+
+        // Auto-generate test data if requested or if no file provided
+        if (action.generateFile || !filePath) {
+          const testDataDir = config.testDataDir || './test-data';
+          if (!fs.existsSync(testDataDir)) {
+            fs.mkdirSync(testDataDir, { recursive: true });
+          }
+
+          const gen = action.generateFile || { type: 'csv' as const };
+          const filename = gen.filename || `test-upload-${Date.now()}`;
+
+          switch (gen.type) {
+            case 'csv': {
+              const schema = gen.schema || { id: 'id', name: 'name', email: 'email', value: 'number' };
+              const csvContent = generateCSV(schema, gen.count || 10);
+              filePath = path.join(testDataDir, `${filename}.csv`);
+              fs.writeFileSync(filePath, csvContent);
+              break;
+            }
+            case 'json': {
+              const schema = gen.schema || { id: 'id', name: 'name', value: 'number' };
+              const { generateJSON } = await import('./testDataAgent.js');
+              const jsonData = generateJSON(schema, gen.count || 10);
+              filePath = path.join(testDataDir, `${filename}.json`);
+              fs.writeFileSync(filePath, JSON.stringify(jsonData, null, 2));
+              break;
+            }
+            case 'image': {
+              filePath = path.join(testDataDir, `${filename}.svg`);
+              generatePlaceholderImage(200, 200, 'Test', filePath);
+              break;
+            }
+            case 'text':
+            default: {
+              filePath = path.join(testDataDir, `${filename}.txt`);
+              fs.writeFileSync(filePath, `Test file content\nGenerated at: ${new Date().toISOString()}`);
+              break;
+            }
+          }
+
+          console.log(`  Generated test file: ${filePath}`);
+        }
+
+        if (!filePath) throw new Error('Upload requires a file path');
+        await page.setInputFiles(action.selector, filePath);
         break;
 
       case 'assert':
