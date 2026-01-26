@@ -1,7 +1,7 @@
 /**
  * Debug Pipeline Server
  *
- * HTTP API for the debugging pipeline.
+ * HTTP API + Web Dashboard for the debugging pipeline.
  */
 
 import { config } from 'dotenv';
@@ -18,12 +18,21 @@ import {
   getHistory,
   pipelineEvents,
 } from './pipeline.js';
+import { getDashboardHtml } from './dashboard.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 
 app.use(cors());
 app.use(express.json());
+
+// === DASHBOARD ===
+app.get('/', (req, res) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(getDashboardHtml());
+});
+
+// === API ROUTES ===
 
 // Get pipeline state
 app.get('/api/state', (req, res) => {
@@ -62,6 +71,8 @@ app.post('/api/run', async (req, res) => {
     runTests,
     useClaudeCode,
     timeout,
+    gitEnabled,
+    gitCommitFixes,
   } = req.body;
 
   if (!projectRoot) {
@@ -79,6 +90,8 @@ app.post('/api/run', async (req, res) => {
     runTests: runTests ?? true,
     useClaudeCode: useClaudeCode ?? true,
     timeout: timeout ?? 300000,
+    gitEnabled: gitEnabled ?? true,
+    gitCommitFixes: gitCommitFixes ?? true,
   });
 
   // Get initial run info
@@ -134,11 +147,13 @@ app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
 
   const sendEvent = (event: string, data: any) => {
-    res.write(`event: ${event}\\ndata: ${JSON.stringify(data)}\\n\\n`);
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
+  // Send initial state
   sendEvent('state', getState());
 
   const onStart = (run: any) => sendEvent('start', run);
@@ -153,7 +168,13 @@ app.get('/api/events', (req, res) => {
   pipelineEvents.on('update', onUpdate);
   pipelineEvents.on('complete', onComplete);
 
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    res.write(': heartbeat\n\n');
+  }, 30000);
+
   req.on('close', () => {
+    clearInterval(heartbeat);
     pipelineEvents.off('start', onStart);
     pipelineEvents.off('stage', onStage);
     pipelineEvents.off('log', onLog);
@@ -171,9 +192,9 @@ app.listen(PORT, () => {
   console.log('');
   console.log('🔧 Debug Pipeline Server');
   console.log('========================');
-  console.log(`Running on http://localhost:${PORT}`);
+  console.log(`Dashboard: http://localhost:${PORT}`);
   console.log('');
-  console.log('Endpoints:');
+  console.log('API Endpoints:');
   console.log('  POST /api/run         - Start pipeline');
   console.log('  POST /api/quick-run   - Auto-detect and run');
   console.log('  POST /api/stop        - Stop current run');
