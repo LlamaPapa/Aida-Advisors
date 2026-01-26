@@ -550,12 +550,20 @@ function resolveSelector(target: string): string {
 function resolveValue(value: string, data: GeneratedData): string {
   // Support data references
   if (value.startsWith('$user.')) {
-    const field = value.slice(6) as keyof GeneratedData['users'][0];
-    return data.users?.[0]?.[field] || value;
+    const field = value.slice(6);
+    const user = data.users?.[0];
+    if (user && field in user) {
+      return String((user as Record<string, unknown>)[field] ?? value);
+    }
+    return value;
   }
   if (value.startsWith('$product.')) {
     const field = value.slice(9);
-    return String((data.products?.[0] as any)?.[field] || value);
+    const product = data.products?.[0];
+    if (product && field in product) {
+      return String((product as Record<string, unknown>)[field] ?? value);
+    }
+    return value;
   }
   return value;
 }

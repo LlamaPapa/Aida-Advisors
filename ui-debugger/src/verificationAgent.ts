@@ -379,14 +379,14 @@ export async function verify(config: {
   sessionId?: string;
   sinceCommit?: string;
   apiKey?: string;
-  runUITests?: boolean;
+  shouldRunUITests?: boolean;
   baseUrl?: string;
 }): Promise<VerificationResult> {
   const {
     projectRoot,
     sinceCommit,
     apiKey,
-    runUITests = false,
+    shouldRunUITests = false,
     baseUrl,
   } = config;
 
@@ -418,7 +418,7 @@ export async function verify(config: {
   // 5. Run UI tests with Playwright
   const testResults: VerificationResult['testResults'] = [];
 
-  if (runUITests && baseUrl) {
+  if (shouldRunUITests && baseUrl) {
     console.log('Running UI tests against:', baseUrl);
 
     try {

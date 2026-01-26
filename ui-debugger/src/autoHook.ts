@@ -179,7 +179,7 @@ export class AutoHook extends EventEmitter {
         plan: trigger.plan,
         roundtableUrl: this.config.roundtableUrl,
         apiKey: this.config.apiKey,
-        runUITests: this.config.runUITests && !!this.config.baseUrl,
+        shouldRunUITests: this.config.runUITests && !!this.config.baseUrl,
         baseUrl: this.config.baseUrl,
         sinceCommit: trigger.commitHash || 'HEAD~1',
       });

@@ -241,7 +241,7 @@ program
         roundtableUrl: options.roundtable,
         sessionId: options.session,
         apiKey: options.apiKey,
-        runUITests: options.ui,
+        shouldRunUITests: options.ui,
         baseUrl: options.baseUrl,
       });
 
