@@ -39,3 +39,14 @@ export {
   generateTestPlan,
   generateFlags,
 } from './verificationAgent.js';
+export {
+  runAutoFix,
+  verifyAndFix,
+  autoFixEvents,
+} from './autoFix.js';
+export type {
+  Issue,
+  FixAttempt,
+  AutoFixResult,
+  AutoFixConfig,
+} from './autoFix.js';

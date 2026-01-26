@@ -22,6 +22,7 @@ import type { PipelineConfig } from './types.js';
 import { getDashboardHtml } from './dashboard.js';
 import { AutoHook, createGitHook } from './autoHook.js';
 import { verify } from './verificationAgent.js';
+import { verifyAndFix, runAutoFix, autoFixEvents } from './autoFix.js';
 import {
   validateWebhookAuth,
   validateProjectRoot,
@@ -354,6 +355,82 @@ app.post('/api/hook/setup-git', (req, res) => {
 app.get('/api/hook/status', (req, res) => {
   res.json({
     running: !!autoHook,
+  });
+});
+
+// === AUTO-FIX ENDPOINTS ===
+
+// Verify and auto-fix in one call
+app.post('/api/auto-fix', webhookAuth, async (req, res) => {
+  const validProjectRoot = validateProjectRoot(req.body.projectRoot);
+  if (!validProjectRoot) {
+    res.status(400).json({ error: 'projectRoot is required and must be an absolute path' });
+    return;
+  }
+
+  const baseUrl = validateUrl(req.body.baseUrl) || undefined;
+  const maxAttempts = validateInt(req.body.maxAttempts, 1, 10, 3);
+  const commitFixes = validateBool(req.body.commitFixes, false);
+
+  try {
+    const result = await verifyAndFix({
+      projectRoot: validProjectRoot,
+      baseUrl,
+      plan: req.body.plan,
+      maxAttempts,
+      commitFixes,
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    res.json({
+      success: result.autoFix?.success ?? result.verification.status === 'pass',
+      verification: {
+        status: result.verification.status,
+        flags: result.verification.flags,
+        summary: result.verification.summary,
+      },
+      autoFix: result.autoFix ? {
+        issuesFixed: result.autoFix.issuesFixed,
+        issuesRemaining: result.autoFix.issuesRemaining,
+        attempts: result.autoFix.attempts.length,
+        commitHash: result.autoFix.commitHash,
+        duration: result.autoFix.duration,
+      } : null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+  }
+});
+
+// SSE stream for auto-fix progress
+app.get('/api/auto-fix/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const handlers: Record<string, (...args: unknown[]) => void> = {
+    start: (data) => {
+      res.write(`data: ${JSON.stringify({ type: 'start', data })}\n\n`);
+    },
+    attemptStart: (data) => {
+      res.write(`data: ${JSON.stringify({ type: 'attemptStart', data })}\n\n`);
+    },
+    attemptComplete: (data) => {
+      res.write(`data: ${JSON.stringify({ type: 'attemptComplete', data })}\n\n`);
+    },
+    complete: (data) => {
+      res.write(`data: ${JSON.stringify({ type: 'complete', data })}\n\n`);
+    },
+  };
+
+  for (const [event, handler] of Object.entries(handlers)) {
+    autoFixEvents.on(event, handler);
+  }
+
+  req.on('close', () => {
+    for (const [event, handler] of Object.entries(handlers)) {
+      autoFixEvents.off(event, handler);
+    }
   });
 });
 
