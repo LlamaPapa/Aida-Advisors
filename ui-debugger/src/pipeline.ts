@@ -663,20 +663,33 @@ export async function quickRun(projectRoot: string, apiKey?: string): Promise<Pi
   let lintCommand: string | undefined;
   let runLint = false;
   let runTests = false;
+  let hasBuildScript = false;
+
+  console.log(`[quickRun] Starting for project: ${projectRoot}`);
 
   const pkgPath = path.join(projectRoot, 'package.json');
+  const tsconfigPath = path.join(projectRoot, 'tsconfig.json');
+
   if (fs.existsSync(pkgPath)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
       const scripts = pkg.scripts || {};
 
+      console.log(`[quickRun] Found package.json with scripts: ${Object.keys(scripts).join(', ') || 'none'}`);
+
       // Detect build command
       if (scripts.build) {
         buildCommand = 'npm run build';
+        hasBuildScript = true;
       } else if (scripts.compile) {
         buildCommand = 'npm run compile';
+        hasBuildScript = true;
       } else if (scripts.tsc) {
         buildCommand = 'npm run tsc';
+        hasBuildScript = true;
+      } else if (scripts.dev) {
+        // Some projects only have "dev" for development
+        console.log(`[quickRun] No build script, but found 'dev' script`);
       }
 
       // Detect test command
@@ -700,8 +713,7 @@ export async function quickRun(projectRoot: string, apiKey?: string): Promise<Pi
         runLint = true;
       }
 
-      // Log what we found
-      console.log(`[quickRun] Detected scripts: build=${!!scripts.build}, test=${runTests}, lint=${runLint}`);
+      console.log(`[quickRun] Detected: build=${hasBuildScript}, test=${runTests}, lint=${runLint}`);
     } catch (e) {
       console.log(`[quickRun] Could not parse package.json: ${e}`);
     }
@@ -709,9 +721,22 @@ export async function quickRun(projectRoot: string, apiKey?: string): Promise<Pi
     console.log(`[quickRun] No package.json found at ${pkgPath}`);
   }
 
+  // If no build script, check for TypeScript config and use tsc directly
+  if (!hasBuildScript && fs.existsSync(tsconfigPath)) {
+    buildCommand = 'npx tsc --noEmit';
+    hasBuildScript = true;
+    console.log(`[quickRun] No build script but found tsconfig.json, using: ${buildCommand}`);
+  }
+
+  // If still no build command, just run a syntax check
+  if (!hasBuildScript) {
+    console.log(`[quickRun] No build script found - will skip build phase`);
+    buildCommand = 'echo "No build script configured - skipping build"';
+  }
+
   return runPipeline({
     projectRoot,
-    buildCommand: buildCommand || 'npm run build',
+    buildCommand,
     testCommand: testCommand || 'npm test',
     lintCommand: lintCommand || 'npm run lint',
     runLint,

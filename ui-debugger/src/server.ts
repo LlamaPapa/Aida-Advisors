@@ -123,7 +123,7 @@ app.post('/api/run', async (req, res) => {
   runPromise.catch(console.error);
 });
 
-// Quick run
+// Quick run - auto-detects project scripts
 app.post('/api/quick-run', async (req, res) => {
   const state = getState();
   if (state.isRunning) {
@@ -131,14 +131,17 @@ app.post('/api/quick-run', async (req, res) => {
     return;
   }
 
-  const { projectRoot } = req.body;
-
-  if (!projectRoot) {
-    res.status(400).json({ error: 'projectRoot is required' });
+  // Validate projectRoot - must be absolute path
+  const validProjectRoot = validateProjectRoot(req.body.projectRoot);
+  if (!validProjectRoot) {
+    res.status(400).json({
+      error: 'projectRoot is required and must be an absolute path (starting with /)',
+      received: req.body.projectRoot
+    });
     return;
   }
 
-  const runPromise = quickRun(projectRoot);
+  const runPromise = quickRun(validProjectRoot);
   const currentState = getState();
 
   res.json({
