@@ -28,7 +28,7 @@ export function upsertEntry(entry: JournalEntry): JournalEntry {
   const saved = {
     ...entry,
     id: entry.id || crypto.randomUUID(),
-    created_at: entry.created_at || new Date().toISOString(),
+    created_at: new Date().toISOString(),
   };
   if (idx >= 0) {
     entries[idx] = saved;
