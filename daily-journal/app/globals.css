@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f9fafb;
   --foreground: #111827;
+}
+
+.dark {
+  --background: #030712;
+  --foreground: #f3f4f6;
 }
 
 body {
@@ -20,6 +27,16 @@ select {
   font-size: 16px;
 }
 
+/* Safe area for notched phones */
+@supports (padding: env(safe-area-inset-top)) {
+  header {
+    padding-top: env(safe-area-inset-top);
+  }
+  main {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Smooth animations */
 @keyframes fade-in {
   from {
@@ -34,4 +51,16 @@ select {
 
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
+}
+
+/* PWA standalone mode adjustments */
+@media (display-mode: standalone) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  textarea, input {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }

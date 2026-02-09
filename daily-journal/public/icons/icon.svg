@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#ffffff"/>
+
+  <!-- Book / journal body -->
+  <rect x="112" y="128" width="288" height="304" rx="16" fill="#4f46e5"/>
+
+  <!-- Spine highlight -->
+  <rect x="112" y="128" width="32" height="304" rx="16" fill="#3730a3"/>
+  <rect x="128" y="128" width="16" height="304" fill="#3730a3"/>
+
+  <!-- Pages (inner white area) -->
+  <rect x="160" y="152" width="216" height="256" rx="8" fill="#ffffff"/>
+
+  <!-- Ruled lines on the page -->
+  <line x1="176" y1="200" x2="360" y2="200" stroke="#c7d2fe" stroke-width="2"/>
+  <line x1="176" y1="228" x2="360" y2="228" stroke="#c7d2fe" stroke-width="2"/>
+  <line x1="176" y1="256" x2="360" y2="256" stroke="#c7d2fe" stroke-width="2"/>
+  <line x1="176" y1="284" x2="360" y2="284" stroke="#c7d2fe" stroke-width="2"/>
+  <line x1="176" y1="312" x2="360" y2="312" stroke="#c7d2fe" stroke-width="2"/>
+  <line x1="176" y1="340" x2="360" y2="340" stroke="#c7d2fe" stroke-width="2"/>
+  <line x1="176" y1="368" x2="360" y2="368" stroke="#c7d2fe" stroke-width="2"/>
+
+  <!-- Sun motif above the book -->
+  <circle cx="320" cy="100" r="36" fill="#4f46e5"/>
+  <circle cx="320" cy="100" r="28" fill="#fbbf24"/>
+
+  <!-- Sun rays -->
+  <line x1="320" y1="52" x2="320" y2="40" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+  <line x1="320" y1="148" x2="320" y2="136" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+  <line x1="272" y1="100" x2="260" y2="100" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+  <line x1="368" y1="100" x2="380" y2="100" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+
+  <line x1="286" y1="66" x2="278" y2="58" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+  <line x1="354" y1="134" x2="362" y2="142" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+  <line x1="286" y1="134" x2="278" y2="142" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+  <line x1="354" y1="66" x2="362" y2="58" stroke="#fbbf24" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -62,22 +62,22 @@ export default function Calendar({ entries, selectedDate, onSelectDate }: Props)
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700 transition-colors"
           aria-label="Previous month"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h2 className="text-lg font-semibold">
+        <h2 className="text-lg font-semibold dark:text-gray-100">
           {MONTHS[viewMonth]} {viewYear}
         </h2>
         <button
           onClick={nextMonth}
-          className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700 transition-colors"
           aria-label="Next month"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -86,7 +86,7 @@ export default function Calendar({ entries, selectedDate, onSelectDate }: Props)
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {DAYS.map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-gray-500 py-1">
+          <div key={d} className="text-center text-xs font-medium text-gray-500 dark:text-gray-500 py-1">
             {d}
           </div>
         ))}
@@ -94,12 +94,10 @@ export default function Calendar({ entries, selectedDate, onSelectDate }: Props)
 
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1">
-        {/* Empty cells for days before the 1st */}
         {Array.from({ length: firstDay }).map((_, i) => (
           <div key={`empty-${i}`} className="aspect-square" />
         ))}
 
-        {/* Day cells */}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dateStr = formatDate(viewYear, viewMonth, day);
@@ -119,27 +117,26 @@ export default function Calendar({ entries, selectedDate, onSelectDate }: Props)
                 aspect-square rounded-lg flex flex-col items-center justify-center relative transition-all
                 ${isSelected ? "bg-indigo-600 text-white shadow-md" : ""}
                 ${isToday && !isSelected ? "ring-2 ring-indigo-400" : ""}
-                ${!isSelected ? "hover:bg-gray-100 active:bg-gray-200" : ""}
+                ${!isSelected ? "hover:bg-gray-100 dark:hover:bg-gray-800 active:bg-gray-200 dark:active:bg-gray-700 dark:text-gray-300" : ""}
               `}
             >
               <span className={`text-sm ${hasAny && !isSelected ? "font-semibold" : ""}`}>
                 {day}
               </span>
-              {/* Entry indicators */}
               {hasAny && (
                 <div className="flex gap-0.5 mt-0.5">
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
                       isSelected
                         ? hasMorning ? "bg-yellow-300" : "bg-white/30"
-                        : hasMorning ? "bg-amber-400" : "bg-gray-200"
+                        : hasMorning ? "bg-amber-400" : "bg-gray-200 dark:bg-gray-700"
                     }`}
                   />
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
                       isSelected
                         ? hasEvening ? "bg-blue-300" : "bg-white/30"
-                        : hasEvening ? "bg-indigo-400" : "bg-gray-200"
+                        : hasEvening ? "bg-indigo-400" : "bg-gray-200 dark:bg-gray-700"
                     }`}
                   />
                 </div>
@@ -157,7 +154,7 @@ export default function Calendar({ entries, selectedDate, onSelectDate }: Props)
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500">
+      <div className="flex items-center justify-center gap-4 mt-4 text-xs text-gray-500 dark:text-gray-500">
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-amber-400" />
           Morning

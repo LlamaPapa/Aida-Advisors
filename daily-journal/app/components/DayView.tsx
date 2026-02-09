@@ -73,33 +73,32 @@ export default function DayView({ date, onEntrySaved }: Props) {
   return (
     <div className="w-full max-w-md mx-auto space-y-6">
       <div className="text-center">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {todayLabel ? "Today" : formatDisplayDate(date)}
         </h2>
         {todayLabel && (
-          <p className="text-sm text-gray-500">{formatDisplayDate(date)}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{formatDisplayDate(date)}</p>
         )}
       </div>
 
-      {/* Success message */}
       {savedMessage && (
-        <div className="bg-green-50 text-green-700 text-center py-2 px-4 rounded-xl text-sm font-medium animate-fade-in">
+        <div className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-center py-2 px-4 rounded-xl text-sm font-medium animate-fade-in">
           {savedMessage}
         </div>
       )}
 
       {/* Morning Entry */}
-      <div className="bg-amber-50 rounded-2xl p-5 space-y-3">
+      <div className="bg-amber-50 dark:bg-amber-950/40 rounded-2xl p-5 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl">&#9788;</span>
-          <h3 className="font-semibold text-amber-900">Morning Reflection</h3>
+          <h3 className="font-semibold text-amber-900 dark:text-amber-200">Morning Reflection</h3>
           {existingMorning && (
-            <span className="ml-auto text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full">
               Saved
             </span>
           )}
         </div>
-        <p className="text-sm text-amber-700">
+        <p className="text-sm text-amber-700 dark:text-amber-300/80">
           Start your day with something positive.
         </p>
         <VoiceRecorder
@@ -111,17 +110,17 @@ export default function DayView({ date, onEntrySaved }: Props) {
       </div>
 
       {/* Evening Entry */}
-      <div className="bg-indigo-50 rounded-2xl p-5 space-y-3">
+      <div className="bg-indigo-50 dark:bg-indigo-950/40 rounded-2xl p-5 space-y-3">
         <div className="flex items-center gap-2">
           <span className="text-2xl">&#9790;</span>
-          <h3 className="font-semibold text-indigo-900">Evening Reflection</h3>
+          <h3 className="font-semibold text-indigo-900 dark:text-indigo-200">Evening Reflection</h3>
           {existingEvening && (
-            <span className="ml-auto text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded-full">
               Saved
             </span>
           )}
         </div>
-        <p className="text-sm text-indigo-700">
+        <p className="text-sm text-indigo-700 dark:text-indigo-300/80">
           End your day on a positive note.
         </p>
         <VoiceRecorder

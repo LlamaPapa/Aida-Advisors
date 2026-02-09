@@ -27,7 +27,6 @@ export default function VoiceRecorder({
     resetTranscript,
   } = useSpeechToText();
 
-  // Sync transcript to parent value while listening
   useEffect(() => {
     if (isListening && transcript) {
       onChange(transcript);
@@ -54,10 +53,11 @@ export default function VoiceRecorder({
         placeholder={placeholder}
         disabled={disabled}
         rows={4}
-        className="w-full rounded-xl border border-gray-200 p-4 text-base resize-none
+        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900
+          p-4 text-base text-gray-900 dark:text-gray-100 resize-none
           focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
           disabled:opacity-50 disabled:cursor-not-allowed
-          placeholder:text-gray-400"
+          placeholder:text-gray-400 dark:placeholder:text-gray-600"
       />
 
       <div className="flex gap-2">
@@ -69,8 +69,8 @@ export default function VoiceRecorder({
             transition-all active:scale-95
             ${
               isListening
-                ? "bg-red-500 text-white shadow-lg shadow-red-200 animate-pulse"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-red-500 text-white shadow-lg shadow-red-200 dark:shadow-red-900/30 animate-pulse"
+                : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
             }
             disabled:opacity-50 disabled:cursor-not-allowed
           `}
@@ -102,7 +102,7 @@ export default function VoiceRecorder({
           disabled={disabled || !value.trim()}
           className="flex-1 py-3 px-4 rounded-xl font-medium bg-indigo-600 text-white
             hover:bg-indigo-700 active:scale-95 transition-all
-            disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200"
+            disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 dark:shadow-indigo-900/30"
         >
           Save Entry
         </button>
