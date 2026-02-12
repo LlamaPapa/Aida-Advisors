@@ -184,7 +184,7 @@ const WEB_UI = `<!DOCTYPE html>
       <div style="position:relative">
         <input id="openai-key" type="password" placeholder="sk-..."
           autocomplete="off" spellcheck="false"
-          onchange="saveSetting('openaiApiKey', this.value)">
+          oninput="debounceSave('openaiApiKey', this.value)">
         <span class="key-toggle" onclick="toggleKeyVis('openai-key', this)">show</span>
       </div>
     </div>
@@ -194,7 +194,7 @@ const WEB_UI = `<!DOCTYPE html>
       <div style="position:relative">
         <input id="anthropic-key" type="password" placeholder="sk-ant-..."
           autocomplete="off" spellcheck="false"
-          onchange="saveSetting('anthropicApiKey', this.value)">
+          oninput="debounceSave('anthropicApiKey', this.value)">
         <span class="key-toggle" onclick="toggleKeyVis('anthropic-key', this)">show</span>
       </div>
     </div>
@@ -339,6 +339,12 @@ function toggleKeyVis(inputId, el) {
   else { inp.type = 'password'; el.textContent = 'show'; }
 }
 
+const _debounceTimers = {};
+function debounceSave(key, value) {
+  clearTimeout(_debounceTimers[key]);
+  _debounceTimers[key] = setTimeout(() => saveSetting(key, value), 400);
+}
+
 async function saveSetting(key, value) {
   const body = {}; body[key] = value;
   try {
@@ -349,6 +355,7 @@ async function saveSetting(key, value) {
     });
     appConfig = await res.json();
     updateProviderBar();
+    updateKeyStatus();
   } catch {}
 }
 
@@ -373,7 +380,19 @@ function togglePaste() {
 }
 
 function openSettings() { document.getElementById('settings-panel').classList.add('show'); }
-function closeSettings() { document.getElementById('settings-panel').classList.remove('show'); }
+function closeSettings() {
+  // Flush any pending debounced saves immediately
+  for (const key of Object.keys(_debounceTimers)) {
+    clearTimeout(_debounceTimers[key]);
+    delete _debounceTimers[key];
+  }
+  // Save current key values directly
+  const oKey = document.getElementById('openai-key').value;
+  const aKey = document.getElementById('anthropic-key').value;
+  if (oKey && oKey !== appConfig.openaiApiKey) saveSetting('openaiApiKey', oKey);
+  if (aKey && aKey !== appConfig.anthropicApiKey) saveSetting('anthropicApiKey', aKey);
+  document.getElementById('settings-panel').classList.remove('show');
+}
 
 async function toggle() {
   if (isRecording) { stopRecording(); } else { await startRecording(); }

@@ -87,6 +87,22 @@ cp -R "$INSTALL_DIR/voice-pipeline/dist" "$APP_DIR/Contents/Resources/voice-pipe
 cp -R "$INSTALL_DIR/voice-pipeline/node_modules" "$APP_DIR/Contents/Resources/voice-pipeline/"
 cp "$INSTALL_DIR/voice-pipeline/package.json" "$APP_DIR/Contents/Resources/voice-pipeline/"
 
+# ── 5a. Compile native WKWebView wrapper ────────────────────
+NATIVE_SRC="$INSTALL_DIR/voice-pipeline/native/AidaVoice.swift"
+NATIVE_BIN="$APP_DIR/Contents/MacOS/AidaVoiceUI"
+if [ -f "$NATIVE_SRC" ] && command -v swiftc &>/dev/null; then
+    echo "  Compiling native window..."
+    swiftc -O -o "$NATIVE_BIN" "$NATIVE_SRC" \
+      -framework Cocoa -framework WebKit 2>/dev/null && \
+    HAVE_NATIVE=true || HAVE_NATIVE=false
+else
+    HAVE_NATIVE=false
+fi
+
+if [ "$HAVE_NATIVE" = "false" ]; then
+    echo "  (Swift compiler not found — will use browser fallback)"
+fi
+
 # Info.plist
 cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -115,10 +131,11 @@ cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
 </plist>
 PLIST
 
-# Launch script — self-contained, points to bundled code inside .app
+# Launch script — starts Node daemon + native window (or browser fallback)
 cat > "$APP_DIR/Contents/MacOS/launch" << 'LAUNCHER'
 #!/bin/bash
 DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+MACOS_DIR="$(cd "$(dirname "$0")" && pwd)"
 PORT=7890
 
 # Find Node.js
@@ -140,22 +157,26 @@ fi
 # Kill any existing daemon on this port
 lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
 
-# Start daemon
+# Start daemon in background
 cd "$DIR/voice-pipeline"
 "$NODE_BIN" dist/cli.js daemon -p $PORT &
 DAEMON_PID=$!
 
-# Wait for server to be ready
-for i in {1..30}; do
-  curl -sf http://localhost:$PORT/api/health >/dev/null 2>&1 && break
-  sleep 0.3
-done
+# Cleanup daemon when this script exits
+trap "kill $DAEMON_PID 2>/dev/null" EXIT
 
-# Open browser
-open "http://localhost:$PORT"
-
-# Keep running
-wait $DAEMON_PID
+# Launch native window or fall back to browser
+if [ -x "$MACOS_DIR/AidaVoiceUI" ]; then
+  "$MACOS_DIR/AidaVoiceUI" -p $PORT
+else
+  # Browser fallback — wait for daemon then open
+  for i in {1..30}; do
+    curl -sf http://localhost:$PORT/api/health >/dev/null 2>&1 && break
+    sleep 0.3
+  done
+  open "http://localhost:$PORT"
+  wait $DAEMON_PID
+fi
 LAUNCHER
 chmod +x "$APP_DIR/Contents/MacOS/launch"
 
