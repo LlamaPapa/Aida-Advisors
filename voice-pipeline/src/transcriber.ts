@@ -1,39 +1,20 @@
-import { createReadStream } from 'node:fs';
-import OpenAI from 'openai';
 import type { TranscriptionResult, VoiceConfig } from './types.js';
-
-let client: OpenAI | null = null;
-
-function getClient(apiKey?: string): OpenAI {
-  if (!client) {
-    const key = apiKey || process.env.OPENAI_API_KEY;
-    if (!key) {
-      throw new Error('OPENAI_API_KEY is required for Whisper transcription. Set it in .env or pass --openai-key');
-    }
-    client = new OpenAI({ apiKey: key });
-  }
-  return client;
-}
+import { resolveSpeechProvider } from './models.js';
+import { loadConfig } from './config.js';
 
 export async function transcribe(
   audioFilePath: string,
   config: VoiceConfig = {}
-): Promise<TranscriptionResult> {
-  const openai = getClient(config.openaiApiKey);
-  const startTime = Date.now();
+): Promise<TranscriptionResult & { providerName: string }> {
+  const appConfig = loadConfig();
 
-  const response = await openai.audio.transcriptions.create({
-    file: createReadStream(audioFilePath),
-    model: config.whisperModel || 'whisper-1',
-    language: config.language,
-    response_format: 'verbose_json',
-  });
+  // Determine which speech provider to use
+  let preferred = config.speechProvider || appConfig.speechProvider;
+  if (config.offlineMode || appConfig.offlineMode) {
+    preferred = 'whisper-local';
+  }
 
-  const durationMs = Date.now() - startTime;
-
-  return {
-    text: response.text,
-    language: response.language,
-    durationMs,
-  };
+  const provider = await resolveSpeechProvider(preferred);
+  const result = await provider.transcribe(audioFilePath, config);
+  return { ...result, providerName: provider.name };
 }

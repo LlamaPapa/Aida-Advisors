@@ -4,6 +4,10 @@ import { record } from './recorder.js';
 import { transcribe } from './transcriber.js';
 import { structure } from './structurer.js';
 import { copyToClipboard, autoPaste } from './clipboard.js';
+import { registerAllProviders } from './providers/index.js';
+
+// Register all providers on import
+registerAllProviders();
 
 export interface PipelineCallbacks {
   onRecordingStart?: () => void;
@@ -29,7 +33,7 @@ export async function runVoicePipeline(
   callbacks.onRecordingStop?.();
 
   try {
-    // 2. Transcribe with Whisper
+    // 2. Transcribe
     callbacks.onTranscribing?.();
     const transcription = await transcribe(recording.filePath, config);
     callbacks.onTranscribed?.(transcription.text);
@@ -38,7 +42,7 @@ export async function runVoicePipeline(
       throw new Error('No speech detected in recording');
     }
 
-    // 3. Structure with Claude
+    // 3. Structure
     callbacks.onStructuring?.();
     const structured = await structure(transcription.text, config);
     callbacks.onStructured?.(structured.structured);
@@ -51,8 +55,7 @@ export async function runVoicePipeline(
     const shouldPaste = config.autoPaste !== false;
     let pasted = false;
     if (shouldPaste && copied) {
-      // Small delay to let clipboard settle and user switch context
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 150));
       pasted = await autoPaste();
       if (pasted) callbacks.onPasted?.();
     }
@@ -62,14 +65,13 @@ export async function runVoicePipeline(
       structured,
       copiedToClipboard: copied,
       autoPasted: pasted,
+      providers: {
+        speech: transcription.providerName,
+        llm: structured.providerName,
+      },
     };
   } finally {
-    // Clean up temp audio file
-    try {
-      unlinkSync(recording.filePath);
-    } catch {
-      // Ignore cleanup errors
-    }
+    try { unlinkSync(recording.filePath); } catch {}
   }
 }
 
@@ -78,7 +80,6 @@ export async function runFromText(
   config: VoiceConfig = {},
   callbacks: PipelineCallbacks = {},
 ): Promise<PipelineResult> {
-  // Skip recording + transcription, go straight to structuring
   callbacks.onStructuring?.();
   const structured = await structure(rawText, config);
   callbacks.onStructured?.(structured.structured);
@@ -89,18 +90,19 @@ export async function runFromText(
   const shouldPaste = config.autoPaste !== false;
   let pasted = false;
   if (shouldPaste && copied) {
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 150));
     pasted = await autoPaste();
     if (pasted) callbacks.onPasted?.();
   }
 
   return {
-    transcription: {
-      text: rawText,
-      durationMs: 0,
-    },
+    transcription: { text: rawText, durationMs: 0 },
     structured,
     copiedToClipboard: copied,
     autoPasted: pasted,
+    providers: {
+      speech: 'text-input',
+      llm: structured.providerName,
+    },
   };
 }

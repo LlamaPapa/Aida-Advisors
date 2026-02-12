@@ -1,19 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { StructureMode, StructuredResult, VoiceConfig } from './types.js';
 import { getMemoryContext, addToMemory } from './memory.js';
-
-let client: Anthropic | null = null;
-
-function getClient(apiKey?: string): Anthropic {
-  if (!client) {
-    const key = apiKey || process.env.ANTHROPIC_API_KEY;
-    if (!key) {
-      throw new Error('ANTHROPIC_API_KEY is required for structuring. Set it in .env or pass --anthropic-key');
-    }
-    client = new Anthropic({ apiKey: key });
-  }
-  return client;
-}
+import { resolveLLMProvider } from './models.js';
+import { loadConfig, getConfigForMode } from './config.js';
 
 const MODE_PROMPTS: Record<StructureMode, string> = {
   message: `You are a voice-to-text structurer. The user dictated a message by speaking freely.
@@ -70,41 +58,33 @@ Your job: extract and organize their tasks.
 export async function structure(
   rawText: string,
   config: VoiceConfig = {}
-): Promise<StructuredResult> {
+): Promise<StructuredResult & { providerName: string }> {
   const mode: StructureMode = config.mode || 'message';
-  const anthropic = getClient(config.anthropicApiKey);
+  const appConfig = loadConfig();
+  const modeConfig = getConfigForMode(mode);
 
+  // Build system prompt with memory context
   const memoryContext = getMemoryContext();
+  const basePrompt = MODE_PROMPTS[mode];
   const systemPrompt = memoryContext
-    ? `${MODE_PROMPTS[mode]}\n\n${memoryContext}`
-    : MODE_PROMPTS[mode];
+    ? `${basePrompt}\n\n${memoryContext}`
+    : basePrompt;
 
-  const response = await anthropic.messages.create({
-    model: config.claudeModel || 'claude-haiku-4-5-20251001',
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [
-      {
-        role: 'user',
-        content: rawText,
-      },
-    ],
-  });
+  // Determine which LLM provider to use
+  let preferred = config.llmProvider || modeConfig.llmProvider;
+  if (config.offlineMode || appConfig.offlineMode) {
+    preferred = 'ollama';
+  }
 
-  const structured = response.content
-    .filter((block) => block.type === 'text')
-    .map((block) => {
-      if (block.type === 'text') return block.text;
-      return '';
-    })
-    .join('\n');
+  const provider = await resolveLLMProvider(preferred);
+  const structured = await provider.complete(rawText, systemPrompt, config);
 
   // Store in rolling memory
   addToMemory({ raw: rawText, structured, mode });
 
-  return {
-    original: rawText,
-    structured,
-    mode,
-  };
+  return { original: rawText, structured, mode, providerName: provider.name };
+}
+
+export function getModePrompt(mode: StructureMode): string {
+  return MODE_PROMPTS[mode];
 }

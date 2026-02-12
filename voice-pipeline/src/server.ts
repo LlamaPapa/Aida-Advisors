@@ -9,6 +9,8 @@ import { structure } from './structurer.js';
 import { copyToClipboard, autoPaste } from './clipboard.js';
 import { getMemory, clearMemory } from './memory.js';
 import { record } from './recorder.js';
+import { loadConfig, updateConfig, type AppConfig } from './config.js';
+import { listSpeechProviders, listLLMProviders } from './models.js';
 
 const TEMP_DIR = join(tmpdir(), 'voice-pipeline');
 
@@ -28,7 +30,7 @@ function getLocalIP(): string {
 
 function cors(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
@@ -66,6 +68,19 @@ const WEB_UI = `<!DOCTYPE html>
     -webkit-user-select: none; user-select: none;
     overflow: hidden;
   }
+  #provider-bar {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; font-size: 11px; color: #555;
+    background: rgba(10,10,10,0.9); backdrop-filter: blur(8px);
+    z-index: 10;
+  }
+  #provider-bar .offline { color: #22c55e; }
+  #provider-bar .cloud { color: #3b82f6; }
+  #settings-btn {
+    padding: 4px 10px; border-radius: 12px; border: 1px solid #333;
+    background: #1a1a1a; color: #888; font-size: 11px; cursor: pointer;
+  }
   #status { font-size: 14px; color: #888; margin-bottom: 24px; height: 20px; }
   #btn {
     width: 120px; height: 120px; border-radius: 50%;
@@ -79,7 +94,7 @@ const WEB_UI = `<!DOCTYPE html>
   #btn.processing { background: #1e40af; border-color: #3b82f6; pointer-events: none; }
   #btn svg { width: 48px; height: 48px; fill: #e0e0e0; }
   @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); } 50% { box-shadow: 0 0 0 20px rgba(220,38,38,0); } }
-  #mode-row { margin-top: 32px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  #mode-row { margin-top: 32px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 0 16px; }
   .mode-btn {
     padding: 6px 14px; border-radius: 20px; border: 1px solid #333;
     background: #1a1a1a; color: #aaa; font-size: 13px; cursor: pointer;
@@ -98,14 +113,52 @@ const WEB_UI = `<!DOCTYPE html>
     position: fixed; bottom: 40px;
     background: #22c55e; color: #000; padding: 8px 20px;
     border-radius: 20px; font-size: 13px; font-weight: 600;
-    opacity: 0; transition: opacity 0.3s;
+    opacity: 0; transition: opacity 0.3s; z-index: 20;
   }
   #copy-toast.show { opacity: 1; }
-  #memory-count { position: fixed; top: 16px; right: 16px; font-size: 12px; color: #555; }
+  #perf { position: fixed; bottom: 12px; font-size: 11px; color: #333; }
+
+  /* Settings panel */
+  #settings-panel {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+    padding: 60px 20px 20px; overflow-y: auto;
+  }
+  #settings-panel.show { display: block; }
+  #settings-panel h2 { font-size: 18px; margin-bottom: 20px; font-weight: 500; }
+  .setting-group { margin-bottom: 20px; }
+  .setting-group label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .setting-group select, .setting-group input {
+    width: 100%; max-width: 360px; padding: 10px 12px;
+    background: #1a1a1a; border: 1px solid #333; border-radius: 8px;
+    color: #e0e0e0; font-size: 14px;
+  }
+  .toggle-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .toggle {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: #333; position: relative; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle.on { background: #22c55e; }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(20px); }
+  #close-settings {
+    position: absolute; top: 16px; right: 16px;
+    padding: 8px 16px; border-radius: 8px; border: 1px solid #333;
+    background: #1a1a1a; color: #e0e0e0; cursor: pointer; font-size: 14px;
+  }
 </style>
 </head>
 <body>
-  <div id="memory-count"></div>
+  <div id="provider-bar">
+    <span id="provider-label">Loading...</span>
+    <div id="settings-btn" onclick="openSettings()">Settings</div>
+  </div>
   <div id="status">Tap to talk</div>
   <div id="btn" ontouchstart="" onclick="toggle()">
     <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>
@@ -113,9 +166,62 @@ const WEB_UI = `<!DOCTYPE html>
   <div id="mode-row"></div>
   <div id="output"></div>
   <div id="copy-toast">Copied!</div>
+  <div id="perf"></div>
+
+  <!-- Settings Panel -->
+  <div id="settings-panel">
+    <button id="close-settings" onclick="closeSettings()">Done</button>
+    <h2>Settings</h2>
+
+    <div class="toggle-row">
+      <div class="toggle" id="offline-toggle" onclick="toggleOffline()"></div>
+      <span>Offline Mode (local models only)</span>
+    </div>
+
+    <div class="setting-group">
+      <label>Speech Provider</label>
+      <select id="speech-select" onchange="saveSetting('speechProvider', this.value)"></select>
+    </div>
+
+    <div class="setting-group">
+      <label>LLM Provider</label>
+      <select id="llm-select" onchange="saveSetting('llmProvider', this.value)"></select>
+    </div>
+
+    <div class="setting-group">
+      <label>Whisper Model</label>
+      <input id="whisper-model" placeholder="whisper-1 (cloud) or base/small/medium (local)"
+        onchange="saveSetting('whisperModel', this.value)">
+    </div>
+
+    <div class="setting-group">
+      <label>LLM Model</label>
+      <input id="llm-model" placeholder="claude-haiku-4-5-20251001 or llama3.2"
+        onchange="saveSetting('llmModel', this.value)">
+    </div>
+
+    <div class="setting-group">
+      <label>Ollama Model</label>
+      <input id="ollama-model" placeholder="llama3.2"
+        onchange="saveSetting('ollamaModel', this.value)">
+    </div>
+
+    <div class="setting-group">
+      <label>Language</label>
+      <input id="language" placeholder="en" maxlength="5"
+        onchange="saveSetting('language', this.value)">
+    </div>
+
+    <div class="toggle-row">
+      <div class="toggle" id="paste-toggle" onclick="togglePaste()"></div>
+      <span>Auto-paste after copy</span>
+    </div>
+  </div>
+
 <script>
 const modes = ['message','notes','email','code','tasks','raw'];
 let mode = 'message';
+let appConfig = {};
 let isRecording = false;
 let mediaRecorder = null;
 let chunks = [];
@@ -124,7 +230,8 @@ const btn = document.getElementById('btn');
 const status = document.getElementById('status');
 const output = document.getElementById('output');
 const toast = document.getElementById('copy-toast');
-const memCount = document.getElementById('memory-count');
+const perf = document.getElementById('perf');
+const provLabel = document.getElementById('provider-label');
 const modeRow = document.getElementById('mode-row');
 
 modes.forEach(m => {
@@ -135,37 +242,112 @@ modes.forEach(m => {
   modeRow.appendChild(b);
 });
 
-async function toggle() {
-  if (isRecording) {
-    stopRecording();
-  } else {
-    await startRecording();
+// Load config on start
+loadAppConfig();
+
+async function loadAppConfig() {
+  try {
+    const res = await fetch('/api/config');
+    appConfig = await res.json();
+    mode = appConfig.defaultMode || 'message';
+    document.querySelectorAll('.mode-btn').forEach(x => x.classList.toggle('active', x.textContent === mode));
+    updateProviderBar();
+    populateSettings();
+  } catch {}
+}
+
+function updateProviderBar() {
+  const offline = appConfig.offlineMode;
+  const speech = appConfig.speechProvider || 'whisper-api';
+  const llm = appConfig.llmProvider || 'claude';
+  const cls = offline ? 'offline' : 'cloud';
+  provLabel.innerHTML = '<span class="' + cls + '">' + (offline ? 'OFFLINE' : 'CLOUD') + '</span>'
+    + ' &middot; speech: ' + speech + ' &middot; llm: ' + llm
+    + ' &middot; mem: ' + (appConfig._memorySize || 0) + '/10';
+}
+
+function populateSettings() {
+  // Offline toggle
+  const ot = document.getElementById('offline-toggle');
+  ot.classList.toggle('on', !!appConfig.offlineMode);
+
+  // Paste toggle
+  const pt = document.getElementById('paste-toggle');
+  pt.classList.toggle('on', appConfig.autoPaste !== false);
+
+  // Selects
+  const ss = document.getElementById('speech-select');
+  const ls = document.getElementById('llm-select');
+  ss.innerHTML = '<option value="whisper-api">whisper-api (cloud)</option><option value="whisper-local">whisper-local (offline)</option>';
+  ls.innerHTML = '<option value="claude">claude (cloud)</option><option value="ollama">ollama (local)</option>';
+  ss.value = appConfig.speechProvider || 'whisper-api';
+  ls.value = appConfig.llmProvider || 'claude';
+
+  // Inputs
+  document.getElementById('whisper-model').value = appConfig.whisperModel || '';
+  document.getElementById('llm-model').value = appConfig.llmModel || '';
+  document.getElementById('ollama-model').value = appConfig.ollamaModel || '';
+  document.getElementById('language').value = appConfig.language || '';
+}
+
+async function saveSetting(key, value) {
+  const body = {}; body[key] = value;
+  try {
+    const res = await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    appConfig = await res.json();
+    updateProviderBar();
+  } catch {}
+}
+
+function toggleOffline() {
+  const ot = document.getElementById('offline-toggle');
+  const newVal = !ot.classList.contains('on');
+  ot.classList.toggle('on', newVal);
+  saveSetting('offlineMode', newVal);
+  if (newVal) {
+    saveSetting('speechProvider', 'whisper-local');
+    saveSetting('llmProvider', 'ollama');
+    document.getElementById('speech-select').value = 'whisper-local';
+    document.getElementById('llm-select').value = 'ollama';
   }
+}
+
+function togglePaste() {
+  const pt = document.getElementById('paste-toggle');
+  const newVal = !pt.classList.contains('on');
+  pt.classList.toggle('on', newVal);
+  saveSetting('autoPaste', newVal);
+}
+
+function openSettings() { document.getElementById('settings-panel').classList.add('show'); }
+function closeSettings() { document.getElementById('settings-panel').classList.remove('show'); }
+
+async function toggle() {
+  if (isRecording) { stopRecording(); } else { await startRecording(); }
 }
 
 async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Prefer webm, fallback to mp4 for Safari
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
     mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
     chunks = [];
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
     mediaRecorder.onstop = () => { stream.getTracks().forEach(t => t.stop()); processAudio(); };
-    mediaRecorder.start(100); // 100ms timeslice for responsiveness
+    mediaRecorder.start(100);
     isRecording = true;
     btn.classList.add('recording');
     status.textContent = 'Listening...';
-  } catch(e) {
-    status.textContent = 'Mic access denied';
-  }
+  } catch(e) { status.textContent = 'Mic access denied'; }
 }
 
 function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-  }
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
   isRecording = false;
   btn.classList.remove('recording');
   btn.classList.add('processing');
@@ -173,6 +355,7 @@ function stopRecording() {
 }
 
 async function processAudio() {
+  const t0 = performance.now();
   try {
     const blob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
     const form = new FormData();
@@ -182,26 +365,19 @@ async function processAudio() {
     const res = await fetch('/api/process', { method: 'POST', body: form });
     const data = await res.json();
 
-    if (data.error) {
-      status.textContent = data.error;
-      btn.classList.remove('processing');
-      return;
-    }
+    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
+    perf.textContent = elapsed + 's · ' + (data.speechProvider || '?') + ' → ' + (data.llmProvider || '?');
+
+    if (data.error) { status.textContent = data.error; btn.classList.remove('processing'); return; }
 
     output.textContent = data.structured;
     output.classList.add('show');
-
-    // Auto-copy
-    try {
-      await navigator.clipboard.writeText(data.structured);
-      showToast();
-    } catch { /* clipboard may need gesture on iOS */ }
+    try { await navigator.clipboard.writeText(data.structured); showToast(); } catch {}
 
     status.textContent = 'Tap to talk';
-    memCount.textContent = 'memory: ' + data.memorySize + '/10';
-  } catch(e) {
-    status.textContent = 'Error: ' + e.message;
-  }
+    appConfig._memorySize = data.memorySize;
+    updateProviderBar();
+  } catch(e) { status.textContent = 'Error: ' + e.message; }
   btn.classList.remove('processing');
 }
 
@@ -210,7 +386,7 @@ function showToast() {
   setTimeout(() => toast.classList.remove('show'), 1500);
 }
 
-// Keyboard shortcut: Option+Space (for desktop)
+// Keyboard: Option+Space
 document.addEventListener('keydown', e => {
   if (e.altKey && e.code === 'Space') { e.preventDefault(); toggle(); }
 });
@@ -234,13 +410,7 @@ export function startServer(serverConfig: ServerConfig): void {
   const server = createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
 
-    // CORS preflight
-    if (req.method === 'OPTIONS') {
-      cors(res);
-      res.writeHead(204);
-      res.end();
-      return;
-    }
+    if (req.method === 'OPTIONS') { cors(res); res.writeHead(204); res.end(); return; }
 
     // ── Web UI ──
     if (url.pathname === '/' && req.method === 'GET') {
@@ -260,32 +430,23 @@ export function startServer(serverConfig: ServerConfig): void {
         const parts = parseMultipart(body, boundary);
         const audioPart = parts.find(p => p.name === 'audio');
         const modePart = parts.find(p => p.name === 'mode');
-
         if (!audioPart) { json(res, { error: 'No audio data' }, 400); return; }
 
         const reqMode = modePart?.data.toString('utf-8') || config.mode || 'message';
         const ext = audioPart.filename?.split('.').pop() || 'webm';
         const tmpFile = join(TEMP_DIR, `upload-${Date.now()}.${ext}`);
 
-        // Write audio to temp file for Whisper
         const ws = createWriteStream(tmpFile);
         ws.write(audioPart.data);
         ws.end();
-        await new Promise<void>((resolve) => ws.on('finish', resolve));
+        await new Promise<void>((r) => ws.on('finish', r));
 
         const transcription = await transcribe(tmpFile, config);
-
-        // Clean up immediately
         try { unlinkSync(tmpFile); } catch {}
 
-        if (!transcription.text.trim()) {
-          json(res, { error: 'No speech detected' });
-          return;
-        }
+        if (!transcription.text.trim()) { json(res, { error: 'No speech detected' }); return; }
 
         const structured = await structure(transcription.text, { ...config, mode: reqMode as VoiceConfig['mode'] });
-
-        // Copy to clipboard on the server (for desktop use)
         await copyToClipboard(structured.structured);
 
         json(res, {
@@ -293,6 +454,8 @@ export function startServer(serverConfig: ServerConfig): void {
           structured: structured.structured,
           mode: reqMode,
           memorySize: getMemory().length,
+          speechProvider: transcription.providerName,
+          llmProvider: structured.providerName,
         });
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -305,17 +468,14 @@ export function startServer(serverConfig: ServerConfig): void {
     // ── Toggle recording (for Option+Space hotkey) ──
     if (url.pathname === '/api/toggle' && req.method === 'POST') {
       if (recording) {
-        // Stop recording
         activeController?.abort();
         recording = false;
         json(res, { status: 'stopped' });
       } else {
-        // Start recording
         recording = true;
         activeController = new AbortController();
         json(res, { status: 'recording' });
 
-        // Process in background
         (async () => {
           try {
             const rec = await record(activeController!.signal);
@@ -329,20 +489,53 @@ export function startServer(serverConfig: ServerConfig): void {
             log('Structuring...');
             const structured = await structure(transcription.text, config);
             await copyToClipboard(structured.structured);
-            log(`Done → clipboard: "${structured.structured.slice(0, 60)}..."`);
+            log(`Done [${transcription.providerName} → ${structured.providerName}] → "${structured.structured.slice(0, 60)}..."`);
 
             if (config.autoPaste !== false) {
               await new Promise((r) => setTimeout(r, 150));
               await autoPaste();
-              log('Auto-pasted');
             }
           } catch (err) {
             recording = false;
-            const msg = err instanceof Error ? err.message : String(err);
-            log(`Toggle error: ${msg}`);
+            log(`Toggle error: ${err instanceof Error ? err.message : String(err)}`);
           }
         })();
       }
+      return;
+    }
+
+    // ── Config (sync across devices) ──
+    if (url.pathname === '/api/config' && req.method === 'GET') {
+      const cfg = loadConfig();
+      json(res, { ...cfg, _memorySize: getMemory().length });
+      return;
+    }
+
+    if (url.pathname === '/api/config' && req.method === 'PUT') {
+      try {
+        const body = await readBody(req);
+        const partial = JSON.parse(body.toString('utf-8'));
+        const updated = updateConfig(partial);
+        json(res, { ...updated, _memorySize: getMemory().length });
+      } catch (err: unknown) {
+        json(res, { error: err instanceof Error ? err.message : String(err) }, 400);
+      }
+      return;
+    }
+
+    // ── Providers (for UI dropdowns) ──
+    if (url.pathname === '/api/providers' && req.method === 'GET') {
+      const speech = await Promise.all(
+        listSpeechProviders().map(async p => ({
+          name: p.name, type: p.type, available: await p.available(),
+        }))
+      );
+      const llm = await Promise.all(
+        listLLMProviders().map(async p => ({
+          name: p.name, type: p.type, available: await p.available(),
+        }))
+      );
+      json(res, { speech, llm });
       return;
     }
 
@@ -351,7 +544,6 @@ export function startServer(serverConfig: ServerConfig): void {
       json(res, { memory: getMemory() });
       return;
     }
-
     if (url.pathname === '/api/memory' && req.method === 'DELETE') {
       clearMemory();
       json(res, { cleared: true });
@@ -360,48 +552,43 @@ export function startServer(serverConfig: ServerConfig): void {
 
     // ── Health ──
     if (url.pathname === '/api/health') {
-      json(res, { ok: true, recording, memorySize: getMemory().length });
+      const cfg = loadConfig();
+      json(res, { ok: true, recording, memorySize: getMemory().length, offline: cfg.offlineMode });
       return;
     }
 
-    // 404
     json(res, { error: 'Not found' }, 404);
   });
 
   server.listen(port, '0.0.0.0', () => {
     const ip = getLocalIP();
+    const cfg = loadConfig();
     log(`\n  Voice daemon running on port ${port}`);
     log(`  ── Desktop ──  http://localhost:${port}`);
     log(`  ── iPhone  ──  http://${ip}:${port}`);
     log(`  ── Hotkey  ──  Option+Space (in browser) or curl -X POST localhost:${port}/api/toggle`);
+    log(`  ── Mode    ──  ${cfg.offlineMode ? 'OFFLINE' : 'CLOUD'} | speech: ${cfg.speechProvider} | llm: ${cfg.llmProvider}`);
     log(`  ── Memory  ──  Rolling 10 entries (${getMemory().length} active)\n`);
   });
 }
 
-// ── Minimal multipart parser (no deps) ──────────────────────
-function getBoundary(contentType: string): string | null {
-  const match = contentType.match(/boundary=(?:"([^"]+)"|([^\s;]+))/);
-  return match ? (match[1] || match[2]) : null;
+// ── Minimal multipart parser ─────────────────────────────────
+function getBoundary(ct: string): string | null {
+  const m = ct.match(/boundary=(?:"([^"]+)"|([^\s;]+))/);
+  return m ? (m[1] || m[2]) : null;
 }
 
-interface MultipartPart {
-  name: string;
-  filename?: string;
-  data: Buffer;
-}
+interface MultipartPart { name: string; filename?: string; data: Buffer; }
 
 function parseMultipart(body: Buffer, boundary: string): MultipartPart[] {
   const parts: MultipartPart[] = [];
   const sep = Buffer.from(`--${boundary}`);
   let pos = 0;
-
   while (pos < body.length) {
     const start = indexOf(body, sep, pos);
     if (start === -1) break;
     const afterSep = start + sep.length;
-    // Check for closing boundary
     if (body[afterSep] === 0x2d && body[afterSep + 1] === 0x2d) break;
-    // Skip CRLF after boundary
     const headerStart = afterSep + 2;
     const headerEnd = indexOf(body, Buffer.from('\r\n\r\n'), headerStart);
     if (headerEnd === -1) break;
@@ -409,15 +596,10 @@ function parseMultipart(body: Buffer, boundary: string): MultipartPart[] {
     const dataStart = headerEnd + 4;
     const nextBoundary = indexOf(body, sep, dataStart);
     const dataEnd = nextBoundary !== -1 ? nextBoundary - 2 : body.length;
-
     const nameMatch = headers.match(/name="([^"]+)"/);
     const filenameMatch = headers.match(/filename="([^"]+)"/);
     if (nameMatch) {
-      parts.push({
-        name: nameMatch[1],
-        filename: filenameMatch?.[1],
-        data: body.subarray(dataStart, dataEnd),
-      });
+      parts.push({ name: nameMatch[1], filename: filenameMatch?.[1], data: body.subarray(dataStart, dataEnd) });
     }
     pos = nextBoundary !== -1 ? nextBoundary : body.length;
   }
