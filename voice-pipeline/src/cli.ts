@@ -6,6 +6,8 @@ import { resolve } from 'node:path';
 import type { StructureMode, VoiceConfig } from './types.js';
 import { runVoicePipeline, runFromText } from './pipeline.js';
 import { checkRecordingDeps } from './recorder.js';
+import { startServer } from './server.js';
+import { getMemory, clearMemory } from './memory.js';
 
 // Load .env from voice-pipeline directory
 loadEnv({ path: resolve(import.meta.dirname || '.', '..', '.env') });
@@ -16,6 +18,34 @@ program
   .name('voice')
   .description('Voice-to-structured-output pipeline. Talk freely, get organized text.')
   .version('1.0.0');
+
+// ── voice daemon ──────────────────────────────────────────────
+program
+  .command('daemon')
+  .alias('d')
+  .description('Start background server — serves iPhone web UI + Option+Space hotkey endpoint')
+  .option('-p, --port <port>', 'Server port', '7890')
+  .option('-m, --mode <mode>', 'Default structuring mode', 'message')
+  .option('--no-paste', 'Disable auto-paste')
+  .option('--openai-key <key>', 'OpenAI API key')
+  .option('--anthropic-key <key>', 'Anthropic API key')
+  .option('--language <lang>', 'Audio language hint')
+  .option('--claude-model <model>', 'Claude model', 'claude-haiku-4-5-20251001')
+  .action((opts) => {
+    const config: VoiceConfig = {
+      mode: opts.mode as StructureMode,
+      autoPaste: opts.paste,
+      openaiApiKey: opts.openaiKey,
+      anthropicApiKey: opts.anthropicKey,
+      language: opts.language,
+      claudeModel: opts.claudeModel,
+    };
+
+    startServer({
+      port: parseInt(opts.port, 10),
+      voiceConfig: config,
+    });
+  });
 
 // ── voice listen ──────────────────────────────────────────────
 program
@@ -29,7 +59,6 @@ program
   .option('--language <lang>', 'Audio language hint (e.g. en, es, fr)')
   .option('--claude-model <model>', 'Claude model for structuring', 'claude-haiku-4-5-20251001')
   .action(async (opts) => {
-    // Check recording deps first
     const deps = checkRecordingDeps();
     if (!deps.available) {
       console.error(`\n  No audio recording tool found.`);
@@ -46,20 +75,17 @@ program
       claudeModel: opts.claudeModel,
     };
 
-    console.log(`\n  Mode: ${config.mode}`);
-    console.log(`  Recording tool: ${deps.tool}`);
+    console.log(`\n  Mode: ${config.mode} | Memory: ${getMemory().length}/10`);
     console.log(`  Press Enter to stop recording...\n`);
 
     const controller = new AbortController();
 
-    // Listen for Enter key to stop recording
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     rl.on('line', () => {
       controller.abort();
       rl.close();
     });
 
-    // Handle Ctrl+C
     process.on('SIGINT', () => {
       controller.abort();
       rl.close();
@@ -68,27 +94,28 @@ program
 
     try {
       const result = await runVoicePipeline(config, {
-        onRecordingStart: () => console.log('  🎙  Recording... (press Enter to stop)'),
-        onRecordingStop: () => console.log('  ⏹  Recording stopped'),
-        onTranscribing: () => process.stdout.write('  ✦  Transcribing...'),
+        onRecordingStart: () => console.log('  Recording... (press Enter to stop)'),
+        onRecordingStop: () => console.log('  Stopped'),
+        onTranscribing: () => process.stdout.write('  Transcribing...'),
         onTranscribed: (text) => {
           console.log(` done (${text.length} chars)`);
           console.log(`\n  ── Raw ──`);
           console.log(`  ${text}\n`);
         },
-        onStructuring: () => process.stdout.write('  ✦  Structuring...'),
+        onStructuring: () => process.stdout.write('  Structuring...'),
         onStructured: (text) => {
           console.log(' done');
           console.log(`\n  ── Structured ──`);
           console.log(`  ${text.split('\n').join('\n  ')}\n`);
         },
-        onCopied: () => console.log('  ✓  Copied to clipboard'),
-        onPasted: () => console.log('  ✓  Auto-pasted'),
+        onCopied: () => console.log('  Copied to clipboard'),
+        onPasted: () => console.log('  Auto-pasted'),
       }, controller.signal);
 
       if (!result.copiedToClipboard) {
-        console.log('  ⚠  Could not copy to clipboard (install xclip or xsel)');
+        console.log('  Could not copy to clipboard (install xclip or xsel)');
       }
+      console.log(`  Memory: ${getMemory().length}/10\n`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes('No speech detected')) {
@@ -147,18 +174,18 @@ program
 
     try {
       const result = await runFromText(text, config, {
-        onStructuring: () => process.stdout.write('  ✦  Structuring...'),
+        onStructuring: () => process.stdout.write('  Structuring...'),
         onStructured: (structured) => {
           console.log(' done');
           console.log(`\n  ── Structured ──`);
           console.log(`  ${structured.split('\n').join('\n  ')}\n`);
         },
-        onCopied: () => console.log('  ✓  Copied to clipboard'),
-        onPasted: () => console.log('  ✓  Auto-pasted'),
+        onCopied: () => console.log('  Copied to clipboard'),
+        onPasted: () => console.log('  Auto-pasted'),
       });
 
       if (!result.copiedToClipboard) {
-        console.log('  ⚠  Could not copy to clipboard');
+        console.log('  Could not copy to clipboard');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -185,7 +212,6 @@ program
       claudeModel: opts.claudeModel,
     };
 
-    // Read all of stdin
     const chunks: Buffer[] = [];
     for await (const chunk of process.stdin) {
       chunks.push(chunk);
@@ -206,12 +232,12 @@ program
             console.log(structured);
           }
         },
-        onCopied: () => { if (!opts.quiet) console.error('  ✓  Copied to clipboard'); },
-        onPasted: () => { if (!opts.quiet) console.error('  ✓  Auto-pasted'); },
+        onCopied: () => { if (!opts.quiet) console.error('  Copied to clipboard'); },
+        onPasted: () => { if (!opts.quiet) console.error('  Auto-pasted'); },
       });
 
       if (!result.copiedToClipboard && !opts.quiet) {
-        console.error('  ⚠  Could not copy to clipboard');
+        console.error('  Could not copy to clipboard');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -269,22 +295,31 @@ program
       });
 
       try {
-        console.log(`  ── #${count} ──`);
+        console.log(`  ── #${count} (memory: ${getMemory().length}/10) ──`);
         await runVoicePipeline(config, {
-          onRecordingStart: () => console.log('  🎙  Recording... (Enter to stop)'),
-          onRecordingStop: () => console.log('  ⏹  Stopped'),
-          onTranscribing: () => process.stdout.write('  ✦  Transcribing...'),
+          onRecordingStart: () => console.log('  Recording... (Enter to stop)'),
+          onRecordingStop: () => console.log('  Stopped'),
+          onTranscribing: () => process.stdout.write('  Transcribing...'),
           onTranscribed: (text) => console.log(` "${text.slice(0, 80)}${text.length > 80 ? '...' : ''}"`),
-          onStructuring: () => process.stdout.write('  ✦  Structuring...'),
+          onStructuring: () => process.stdout.write('  Structuring...'),
           onStructured: () => console.log(' done'),
-          onCopied: () => console.log('  ✓  Clipboard + paste ready'),
-          onPasted: () => console.log('  ✓  Pasted'),
+          onCopied: () => console.log('  Clipboard ready'),
+          onPasted: () => console.log('  Pasted'),
         }, controller.signal);
       } catch {
         console.log('  (skipped)\n');
       }
       console.log('');
     }
+  });
+
+// ── voice clear ───────────────────────────────────────────────
+program
+  .command('clear')
+  .description('Clear the rolling memory')
+  .action(() => {
+    clearMemory();
+    console.log('  Memory cleared.\n');
   });
 
 program.parse();

@@ -3,6 +3,8 @@ export { record, recordForDuration, checkRecordingDeps } from './recorder.js';
 export { transcribe } from './transcriber.js';
 export { structure } from './structurer.js';
 export { copyToClipboard, autoPaste } from './clipboard.js';
+export { addToMemory, getMemory, getMemoryContext, clearMemory } from './memory.js';
+export { startServer } from './server.js';
 export type {
   VoiceConfig,
   StructureMode,
