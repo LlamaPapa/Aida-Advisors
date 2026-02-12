@@ -1,0 +1,168 @@
+name: Build AIDA Voice macOS App
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies & build
+        working-directory: voice-pipeline
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create AIDA Voice.app bundle
+        run: |
+          APP_DIR="AIDA Voice.app"
+          mkdir -p "$APP_DIR/Contents/MacOS"
+          mkdir -p "$APP_DIR/Contents/Resources"
+          mkdir -p "$APP_DIR/Contents/Resources/voice-pipeline"
+
+          # Copy built app into the bundle
+          cp -R voice-pipeline/dist "$APP_DIR/Contents/Resources/voice-pipeline/"
+          cp -R voice-pipeline/node_modules "$APP_DIR/Contents/Resources/voice-pipeline/"
+          cp voice-pipeline/package.json "$APP_DIR/Contents/Resources/voice-pipeline/"
+
+          # Info.plist
+          cat > "$APP_DIR/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>AIDA Voice</string>
+              <key>CFBundleDisplayName</key>
+              <string>AIDA Voice</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.aida.voice</string>
+              <key>CFBundleVersion</key>
+              <string>1.0.0</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0.0</string>
+              <key>CFBundleExecutable</key>
+              <string>launch</string>
+              <key>CFBundleIconFile</key>
+              <string>icon</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>12.0</string>
+              <key>NSMicrophoneUsageDescription</key>
+              <string>AIDA Voice needs microphone access for speech-to-text.</string>
+          </dict>
+          </plist>
+          PLIST
+
+          # Launcher script — uses system Node or embedded
+          cat > "$APP_DIR/Contents/MacOS/launch" << 'LAUNCHER'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "$0")/../Resources" && pwd)"
+          PORT=7890
+
+          # Find Node.js — check common locations
+          for NODE_BIN in \
+            /opt/homebrew/bin/node \
+            /usr/local/bin/node \
+            "$HOME/.nvm/versions/node"/*/bin/node \
+            "$(which node 2>/dev/null)" \
+          ; do
+            if [ -x "$NODE_BIN" ]; then
+              break
+            fi
+          done
+
+          if [ ! -x "$NODE_BIN" ]; then
+            osascript -e 'display alert "Node.js Required" message "AIDA Voice needs Node.js to run.\n\nInstall it from https://nodejs.org" as critical buttons {"Open nodejs.org", "Cancel"} default button 1' \
+              -e 'if button returned of result is "Open nodejs.org" then open location "https://nodejs.org"'
+            exit 1
+          fi
+
+          # Kill any existing daemon on this port
+          lsof -ti:$PORT | xargs kill -9 2>/dev/null || true
+
+          # Start daemon
+          cd "$DIR/voice-pipeline"
+          "$NODE_BIN" dist/cli.js daemon -p $PORT &
+          DAEMON_PID=$!
+
+          # Wait for server
+          for i in {1..30}; do
+            if curl -sf http://localhost:$PORT/api/health >/dev/null 2>&1; then
+              break
+            fi
+            sleep 0.3
+          done
+
+          # Open browser
+          open "http://localhost:$PORT"
+
+          # Wait — app stays running while daemon runs
+          wait $DAEMON_PID
+          LAUNCHER
+          chmod +x "$APP_DIR/Contents/MacOS/launch"
+
+      - name: Generate app icon
+        run: |
+          APP_DIR="AIDA Voice.app"
+          if [ -f icon.svg ]; then
+            ICON_TMP=$(mktemp -d)
+            # Use rsvg-convert if available, else qlmanage
+            if command -v rsvg-convert &>/dev/null; then
+              rsvg-convert -w 512 -h 512 icon.svg > "$ICON_TMP/icon_512.png"
+            else
+              qlmanage -t -s 512 -o "$ICON_TMP" icon.svg 2>/dev/null || true
+              mv "$ICON_TMP/icon.svg.png" "$ICON_TMP/icon_512.png" 2>/dev/null || true
+            fi
+            if [ -f "$ICON_TMP/icon_512.png" ]; then
+              mkdir -p "$ICON_TMP/icon.iconset"
+              sips -z 16 16     "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_16x16.png"
+              sips -z 32 32     "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_16x16@2x.png"
+              sips -z 32 32     "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_32x32.png"
+              sips -z 64 64     "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_32x32@2x.png"
+              sips -z 128 128   "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_128x128.png"
+              sips -z 256 256   "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_128x128@2x.png"
+              sips -z 256 256   "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_256x256.png"
+              sips -z 512 512   "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_256x256@2x.png"
+              sips -z 512 512   "$ICON_TMP/icon_512.png" --out "$ICON_TMP/icon.iconset/icon_512x512.png"
+              cp "$ICON_TMP/icon_512.png" "$ICON_TMP/icon.iconset/icon_512x512@2x.png"
+              iconutil -c icns "$ICON_TMP/icon.iconset" -o "$APP_DIR/Contents/Resources/icon.icns"
+            fi
+            rm -rf "$ICON_TMP"
+          fi
+
+      - name: Create zip
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "AIDA Voice.app" "AIDA-Voice-macOS.zip"
+
+      - name: Upload artifact (every build)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIDA-Voice-macOS
+          path: AIDA-Voice-macOS.zip
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AIDA-Voice-macOS.zip
+          body: |
+            ## AIDA Voice
+
+            **Download `AIDA-Voice-macOS.zip`, unzip, drag to Applications, double-click.**
+
+            On first launch, tap **Settings** (top-right) and enter your API keys:
+            - OpenAI key (for speech-to-text): https://platform.openai.com/api-keys
+            - Anthropic key (for Claude): https://console.anthropic.com/settings/keys
+
+            Requires Node.js — install from https://nodejs.org if you don't have it.
