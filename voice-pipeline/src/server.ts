@@ -147,6 +147,12 @@ const WEB_UI = `<!DOCTYPE html>
     background: #fff; transition: transform 0.2s;
   }
   .toggle.on::after { transform: translateX(20px); }
+  .key-toggle {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 11px; color: #555; cursor: pointer; padding: 4px 8px;
+    border-radius: 4px; background: #222;
+  }
+  .key-toggle:hover { color: #aaa; }
   #close-settings {
     position: absolute; top: 16px; right: 16px;
     padding: 8px 16px; border-radius: 8px; border: 1px solid #333;
@@ -172,6 +178,28 @@ const WEB_UI = `<!DOCTYPE html>
   <div id="settings-panel">
     <button id="close-settings" onclick="closeSettings()">Done</button>
     <h2>Settings</h2>
+
+    <div class="setting-group">
+      <label>OpenAI API Key</label>
+      <div style="position:relative">
+        <input id="openai-key" type="password" placeholder="sk-..."
+          autocomplete="off" spellcheck="false"
+          onchange="saveSetting('openaiApiKey', this.value)">
+        <span class="key-toggle" onclick="toggleKeyVis('openai-key', this)">show</span>
+      </div>
+    </div>
+
+    <div class="setting-group">
+      <label>Anthropic API Key</label>
+      <div style="position:relative">
+        <input id="anthropic-key" type="password" placeholder="sk-ant-..."
+          autocomplete="off" spellcheck="false"
+          onchange="saveSetting('anthropicApiKey', this.value)">
+        <span class="key-toggle" onclick="toggleKeyVis('anthropic-key', this)">show</span>
+      </div>
+    </div>
+
+    <div id="key-status" style="font-size:12px;margin-bottom:20px;color:#555"></div>
 
     <div class="toggle-row">
       <div class="toggle" id="offline-toggle" onclick="toggleOffline()"></div>
@@ -288,6 +316,27 @@ function populateSettings() {
   document.getElementById('llm-model').value = appConfig.llmModel || '';
   document.getElementById('ollama-model').value = appConfig.ollamaModel || '';
   document.getElementById('language').value = appConfig.language || '';
+
+  // API keys — show masked placeholder if set, empty if not
+  document.getElementById('openai-key').value = appConfig.openaiApiKey || '';
+  document.getElementById('anthropic-key').value = appConfig.anthropicApiKey || '';
+  updateKeyStatus();
+}
+
+function updateKeyStatus() {
+  const ks = document.getElementById('key-status');
+  const hasOpenai = !!(appConfig.openaiApiKey || appConfig._envOpenai);
+  const hasAnthropic = !!(appConfig.anthropicApiKey || appConfig._envAnthropic);
+  const parts = [];
+  parts.push(hasOpenai ? 'OpenAI: set' : 'OpenAI: missing');
+  parts.push(hasAnthropic ? 'Anthropic: set' : 'Anthropic: missing');
+  ks.innerHTML = parts.map(p => '<span style="color:' + (p.includes('set') ? '#22c55e' : '#ef4444') + '">' + p + '</span>').join(' &middot; ');
+}
+
+function toggleKeyVis(inputId, el) {
+  const inp = document.getElementById(inputId);
+  if (inp.type === 'password') { inp.type = 'text'; el.textContent = 'hide'; }
+  else { inp.type = 'password'; el.textContent = 'show'; }
 }
 
 async function saveSetting(key, value) {
@@ -405,6 +454,16 @@ export function startServer(serverConfig: ServerConfig): void {
   const config = serverConfig.voiceConfig;
   const log = serverConfig.onLog || console.log;
 
+  // Merge API keys from persistent config into the runtime VoiceConfig
+  function withKeys(vc: VoiceConfig): VoiceConfig {
+    const cfg = loadConfig();
+    return {
+      ...vc,
+      openaiApiKey: vc.openaiApiKey || cfg.openaiApiKey,
+      anthropicApiKey: vc.anthropicApiKey || cfg.anthropicApiKey,
+    };
+  }
+
   ensureTempDir();
 
   const server = createServer(async (req, res) => {
@@ -441,12 +500,13 @@ export function startServer(serverConfig: ServerConfig): void {
         ws.end();
         await new Promise<void>((r) => ws.on('finish', r));
 
-        const transcription = await transcribe(tmpFile, config);
+        const effectiveConfig = withKeys(config);
+        const transcription = await transcribe(tmpFile, effectiveConfig);
         try { unlinkSync(tmpFile); } catch {}
 
         if (!transcription.text.trim()) { json(res, { error: 'No speech detected' }); return; }
 
-        const structured = await structure(transcription.text, { ...config, mode: reqMode as VoiceConfig['mode'] });
+        const structured = await structure(transcription.text, { ...effectiveConfig, mode: reqMode as VoiceConfig['mode'] });
         await copyToClipboard(structured.structured);
 
         json(res, {
@@ -478,20 +538,21 @@ export function startServer(serverConfig: ServerConfig): void {
 
         (async () => {
           try {
+            const effectiveConfig = withKeys(config);
             const rec = await record(activeController!.signal);
             recording = false;
             log('Transcribing...');
-            const transcription = await transcribe(rec.filePath, config);
+            const transcription = await transcribe(rec.filePath, effectiveConfig);
             try { unlinkSync(rec.filePath); } catch {}
 
             if (!transcription.text.trim()) { log('No speech detected'); return; }
 
             log('Structuring...');
-            const structured = await structure(transcription.text, config);
+            const structured = await structure(transcription.text, effectiveConfig);
             await copyToClipboard(structured.structured);
             log(`Done [${transcription.providerName} → ${structured.providerName}] → "${structured.structured.slice(0, 60)}..."`);
 
-            if (config.autoPaste !== false) {
+            if (effectiveConfig.autoPaste !== false) {
               await new Promise((r) => setTimeout(r, 150));
               await autoPaste();
             }
@@ -507,7 +568,12 @@ export function startServer(serverConfig: ServerConfig): void {
     // ── Config (sync across devices) ──
     if (url.pathname === '/api/config' && req.method === 'GET') {
       const cfg = loadConfig();
-      json(res, { ...cfg, _memorySize: getMemory().length });
+      json(res, {
+        ...cfg,
+        _memorySize: getMemory().length,
+        _envOpenai: !!process.env.OPENAI_API_KEY,
+        _envAnthropic: !!process.env.ANTHROPIC_API_KEY,
+      });
       return;
     }
 

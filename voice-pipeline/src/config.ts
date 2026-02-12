@@ -26,6 +26,10 @@ export interface AppConfig {
   offlineMode: boolean;         // force local-only providers
   port: number;
 
+  // API keys (stored so you never need a .env file)
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+
   // Per-mode overrides
   modes: Partial<Record<StructureMode, ModeConfig>>;
 

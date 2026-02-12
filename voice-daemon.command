@@ -23,15 +23,7 @@ if [ ! -d "voice-pipeline/dist" ]; then
     exit 1
 fi
 
-# Check .env has real keys
-if grep -q "replace-with-your" "$REPO_DIR/.env" 2>/dev/null; then
-    echo "⚠  Your .env file still has placeholder keys."
-    echo "   Edit this file with your real API keys:"
-    echo "   $REPO_DIR/.env"
-    echo ""
-    read -p "Press Enter to continue anyway (offline mode)..."
-    echo ""
-fi
+# API keys are managed via the web UI Settings panel — no .env needed
 
 cd voice-pipeline
 

@@ -1,14 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { LLMProvider } from '../models.js';
 import type { VoiceConfig } from '../types.js';
+import { loadConfig } from '../config.js';
 
 let client: Anthropic | null = null;
+let currentKey: string | undefined;
 
 function getClient(apiKey?: string): Anthropic {
-  if (!client) {
-    const key = apiKey || process.env.ANTHROPIC_API_KEY;
-    if (!key) throw new Error('ANTHROPIC_API_KEY required');
+  const key = apiKey || loadConfig().anthropicApiKey || process.env.ANTHROPIC_API_KEY;
+  if (!key) throw new Error('ANTHROPIC_API_KEY required — add it in Settings or set the env var');
+  // Recreate client if key changed
+  if (!client || key !== currentKey) {
     client = new Anthropic({ apiKey: key });
+    currentKey = key;
   }
   return client;
 }
@@ -18,7 +22,7 @@ export const claudeProvider: LLMProvider = {
   type: 'cloud',
 
   async available(): Promise<boolean> {
-    return !!(process.env.ANTHROPIC_API_KEY);
+    return !!(loadConfig().anthropicApiKey || process.env.ANTHROPIC_API_KEY);
   },
 
   async complete(text: string, systemPrompt: string, config: VoiceConfig): Promise<string> {

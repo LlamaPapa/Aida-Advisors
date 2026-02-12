@@ -53,25 +53,7 @@ echo ""
 echo "⟩ Building..."
 npm run build
 
-# Create .env if it doesn't exist
-if [ ! -f "$REPO_DIR/.env" ]; then
-    echo ""
-    echo "⟩ Creating .env template..."
-    cat > "$REPO_DIR/.env" << 'ENVEOF'
-# Aida Voice Pipeline — API Keys
-# Replace these with your real keys
-
-OPENAI_API_KEY=sk-replace-with-your-openai-key
-ANTHROPIC_API_KEY=sk-ant-replace-with-your-anthropic-key
-ENVEOF
-    echo ""
-    echo "  ⚠  IMPORTANT: Edit the .env file with your real API keys!"
-    echo "  File location: $REPO_DIR/.env"
-    echo ""
-    echo "  To get keys:"
-    echo "    OpenAI:    https://platform.openai.com/api-keys"
-    echo "    Anthropic: https://console.anthropic.com/settings/keys"
-fi
+# No .env needed — API keys are entered in the web UI Settings panel
 
 # Check for sox (audio recording)
 if ! command -v sox &>/dev/null; then
@@ -84,9 +66,8 @@ echo ""
 echo "══════════════════════════════════════════════"
 echo "  Setup complete!"
 echo ""
-echo "  Next steps:"
-echo "  1. Edit .env with your real API keys"
-echo "  2. Double-click 'voice-daemon.command' to run"
+echo "  Next: Double-click 'voice-daemon.command' to run."
+echo "  Enter your API keys in Settings (top-right)."
 echo "══════════════════════════════════════════════"
 echo ""
 read -p "Press Enter to close..."
