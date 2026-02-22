@@ -1,179 +1,103 @@
-import { Recommendation, ConditionInputs, PrefsInputs } from "./types";
+import { Conditions, Prefs, Recommendation } from "./types";
 
-/**
- * Deterministic clothing recommendation engine.
- * All temps in °F internally.
- */
-export function getRecommendation(
-  conditions: ConditionInputs,
-  prefs: PrefsInputs
-): Recommendation {
-  const effectiveTemp = computeEffectiveTemp(conditions, prefs);
-  return buildStack(effectiveTemp, conditions, prefs);
+function clamp(n: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, n));
 }
 
-// ── Effective temperature ──
-
-function computeEffectiveTemp(c: ConditionInputs, p: PrefsInputs): number {
-  const windPenalty = computeWindPenalty(c.windSpeed, c.windGust, p.timeOutside);
-  const wetPenalty = computeWetPenalty(c.pop, c.rainIntensity, c.snowIntensity);
-  const sunBonus = computeSunBonus(c);
-  const runsAdj = p.runsTemp === "cold" ? 4 : p.runsTemp === "hot" ? -4 : 0;
-  const activityAdj = p.activity === "workout" ? 8 : p.activity === "walking" ? 3 : 0;
-
-  return (
-    c.temp -
-    windPenalty +
-    sunBonus -
-    wetPenalty +
-    p.comfortOffsetF +
-    runsAdj +
-    activityAdj
-  );
+function windPenaltyF(windMph: number, timeOutsideMin: number) {
+  const penalty = (windMph / 3) * (timeOutsideMin / 30);
+  return clamp(penalty, 0, 10);
 }
 
-function computeWindPenalty(speed: number, gust: number, timeOutside: number): number {
-  const effectiveWind = Math.max(speed, gust * 0.7);
-  const timeFactor = timeOutside >= 60 ? 1.3 : timeOutside >= 30 ? 1.0 : 0.7;
-  if (effectiveWind < 5) return 0;
-  if (effectiveWind < 10) return 2 * timeFactor;
-  if (effectiveWind < 20) return 5 * timeFactor;
-  return 8 * timeFactor;
-}
-
-function computeWetPenalty(pop: number, rain: number, snow: number): number {
-  const hasPrecip = rain > 0 || snow > 0;
-  if (pop >= 0.6) return hasPrecip ? 5 : 3;
-  if (pop >= 0.35 && hasPrecip) return 3;
+function wetPenaltyF(pop: number) {
+  if (pop >= 0.6) return 6;
+  if (pop >= 0.35) return 3;
   return 0;
 }
 
-function computeSunBonus(c: ConditionInputs): number {
-  if (!c.isDaytime) return 0;
-  if (c.windSpeed > 10) return 0;
-  if (c.pop > 0.3) return 0;
-  return 3;
+function activityAdjustF(activity: Prefs["activity"]) {
+  if (activity === "walking") return 2;
+  if (activity === "workout") return 8;
+  return 0;
 }
 
-// ── Layer mapping ──
-
-interface Stack {
-  base: string;
-  mid: string;
-  outer: string;
-  extras: string[];
+function runHotColdAdjustF(run: Prefs["run"]) {
+  if (run === "cold") return 4;
+  if (run === "hot") return -4;
+  return 0;
 }
 
-function buildStack(
-  eff: number,
-  c: ConditionInputs,
-  p: PrefsInputs
-): Recommendation {
-  const stack = selectLayers(eff, c, p);
+function whyLine(c: Conditions, p: Prefs) {
+  const parts: string[] = [];
+  if (c.windMph >= 12) parts.push(`Wind ${Math.round(c.windMph)} mph`);
+  if (c.pop >= 0.6) parts.push(`High precip chance`);
+  else if (c.pop >= 0.35) parts.push(`Possible precip`);
+  if (p.timeOutsideMinutes >= 30) parts.push(`${p.timeOutsideMinutes} min outside`);
+  if (parts.length === 0) return `Based on your comfort settings`;
+  return parts.join(" \u2022 ").slice(0, 120);
+}
 
-  // Hate sweaty: shift lighter and prefer breathable
+function layerMap(effectiveTempF: number, c: Conditions) {
+  const windy = c.windMph >= 12;
+  const rainy = c.pop >= 0.35;
+
+  if (effectiveTempF >= 70) {
+    return { base: "T-shirt", mid: "None", outer: "None", extras: [] as string[] };
+  }
+  if (effectiveTempF >= 60) {
+    const outer = windy || rainy ? "Light shell" : "None";
+    return { base: "T-shirt or long-sleeve", mid: "Optional light layer", outer, extras: [] as string[] };
+  }
+  if (effectiveTempF >= 50) {
+    const outer = windy || rainy ? "Light shell" : "None";
+    return { base: "Long-sleeve", mid: "Light fleece", outer, extras: [] as string[] };
+  }
+  if (effectiveTempF >= 40) {
+    return { base: "Long-sleeve", mid: "Fleece", outer: "Light insulated or shell+mid", extras: [] as string[] };
+  }
+  if (effectiveTempF >= 30) {
+    return { base: "Thermal / long-sleeve", mid: "Fleece", outer: "Insulated jacket", extras: ["Beanie"] };
+  }
+  if (effectiveTempF >= 20) {
+    return { base: "Thermal", mid: "Fleece", outer: "Warm insulated coat", extras: ["Beanie", "Gloves"] };
+  }
+  return { base: "Thermal", mid: "Heavy fleece", outer: "Warm insulated coat", extras: ["Beanie", "Gloves", "Neck gaiter"] };
+}
+
+export function getRecommendation(c: Conditions, p: Prefs): Recommendation {
+  const eff =
+    c.tempF
+    + p.comfortOffsetF
+    + runHotColdAdjustF(p.run)
+    - windPenaltyF(c.windMph, p.timeOutsideMinutes)
+    - wetPenaltyF(c.pop)
+    + activityAdjustF(p.activity);
+
+  let mapped = layerMap(eff, c);
+
+  // Sweat preference: nudge lighter near boundaries
   if (p.hateSweaty) {
-    stack.base = lighterBase(stack.base);
-    if (stack.outer.includes("insulated")) {
-      stack.outer = "wind shell";
+    if (eff >= 38 && eff < 45) {
+      mapped = { ...mapped, outer: "Shell + mid (avoid heavy insulation)" };
+    }
+    if (p.activity === "workout") {
+      mapped = { ...mapped, mid: "Optional light layer", extras: mapped.extras.filter(x => x !== "Gloves") };
     }
   }
 
-  const why = buildWhy(eff, c, p);
+  // Add extras based on wind/time outside
+  const extras = new Set(mapped.extras);
+  if (c.windMph >= 15 && p.timeOutsideMinutes >= 30) extras.add("Gloves");
+  if (c.windMph >= 10 && p.timeOutsideMinutes >= 60) extras.add("Gloves");
+  if (c.windMph >= 15) extras.add("Beanie");
+  if (c.pop >= 0.35) extras.add("Rain shell / umbrella");
 
   return {
-    base: stack.base,
-    mid: stack.mid,
-    outer: stack.outer,
-    extras: stack.extras.length > 0 ? stack.extras.join(", ") : "none",
-    why,
+    effectiveTempF: Math.round(eff),
+    base: mapped.base,
+    mid: mapped.mid,
+    outer: mapped.outer,
+    extras: Array.from(extras),
+    why: whyLine(c, p),
   };
-}
-
-function selectLayers(eff: number, c: ConditionInputs, p: PrefsInputs): Stack {
-  const windy = c.windSpeed > 12 || (c.windGust > 20);
-  const rainy = c.pop >= 0.35 && (c.rainIntensity > 0 || c.pop >= 0.6);
-  const snowy = c.snowIntensity > 0 && c.pop >= 0.35;
-  const longTime = p.timeOutside >= 30;
-
-  if (eff >= 70) {
-    return {
-      base: "t-shirt",
-      mid: "none",
-      outer: rainy ? "light rain shell" : "none",
-      extras: rainy ? ["umbrella"] : [],
-    };
-  }
-  if (eff >= 60) {
-    return {
-      base: eff >= 65 ? "t-shirt" : "long-sleeve tee",
-      mid: eff < 65 ? "light layer" : "none",
-      outer: rainy ? "light rain shell" : windy ? "light wind shell" : "none",
-      extras: rainy ? ["umbrella"] : [],
-    };
-  }
-  if (eff >= 50) {
-    return {
-      base: "long-sleeve shirt",
-      mid: "light fleece",
-      outer: windy || rainy ? "light shell" : "none",
-      extras: rainy ? ["umbrella"] : [],
-    };
-  }
-  if (eff >= 40) {
-    const extras: string[] = [];
-    if (windy || eff < 45) extras.push("beanie");
-    if (rainy || snowy) extras.push("umbrella");
-    return {
-      base: "long-sleeve shirt",
-      mid: "fleece",
-      outer: rainy ? "waterproof shell" : windy ? "insulated shell" : "light insulated jacket",
-      extras,
-    };
-  }
-  if (eff >= 30) {
-    const extras = ["beanie"];
-    if (windy || longTime) extras.push("gloves");
-    if (rainy || snowy) extras.push("waterproof outer");
-    return {
-      base: "thermal base layer",
-      mid: "fleece",
-      outer: "insulated jacket",
-      extras,
-    };
-  }
-  if (eff >= 20) {
-    return {
-      base: "thermal base layer",
-      mid: "heavy fleece",
-      outer: "warm insulated coat",
-      extras: ["beanie", "insulated gloves"],
-    };
-  }
-  // Below 20°F
-  const extras = ["beanie", "insulated gloves", "scarf / neck gaiter"];
-  if (windy) extras.push("face coverage");
-  return {
-    base: "heavy thermal base layer",
-    mid: "heavy fleece",
-    outer: "heavy insulated coat",
-    extras,
-  };
-}
-
-function lighterBase(base: string): string {
-  if (base.includes("heavy thermal")) return "thermal base layer";
-  if (base.includes("thermal")) return "long-sleeve shirt";
-  return base;
-}
-
-function buildWhy(eff: number, c: ConditionInputs, p: PrefsInputs): string {
-  const parts: string[] = [];
-  parts.push(`Effective temp: ${Math.round(eff)}°F`);
-  if (c.windSpeed > 10) parts.push(`wind ${Math.round(c.windSpeed)} mph`);
-  if (c.pop >= 0.35) parts.push(`${Math.round(c.pop * 100)}% precip chance`);
-  if (p.hateSweaty) parts.push("breathable picks");
-  if (p.activity === "workout") parts.push("active wear");
-  const why = parts.join(". ") + ".";
-  return why.length > 120 ? why.slice(0, 117) + "..." : why;
 }

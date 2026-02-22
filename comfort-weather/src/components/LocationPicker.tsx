@@ -6,7 +6,7 @@ interface Props {
   onLocate: (lat: number, lon: number, name: string) => void;
 }
 
-export default function LocationSearch({ onLocate }: Props) {
+export default function LocationPicker({ onLocate }: Props) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

@@ -2,7 +2,7 @@
 
 export interface HourlyWeather {
   dt: number;
-  temp: number; // °F (converted from API)
+  temp: number; // °F (imperial from API)
   feels_like: number;
   wind_speed: number; // mph
   wind_gust?: number;
@@ -21,63 +21,64 @@ export interface WeatherData {
   lat: number;
   lon: number;
   current: CurrentWeather;
-  hourly: HourlyWeather[]; // next 48h from API; we use first 8
+  hourly: HourlyWeather[];
+}
+
+// ── Conditions snapshot passed to rule engine ──
+
+export interface Conditions {
+  tempF: number;
+  feelsLikeF: number;
+  windMph: number;
+  windGustMph: number;
+  pop: number; // 0–1
+  rainMm: number;
+  snowMm: number;
+  isDaytime: boolean;
 }
 
 // ── User preferences ──
 
-export type TimeOutside = 5 | 15 | 30 | 60;
+export type TimeOutsideMinutes = 5 | 15 | 30 | 60;
 export type Activity = "still" | "walking" | "workout";
-export type RunsTemp = "cold" | "neutral" | "hot";
+export type RunTemp = "cold" | "neutral" | "hot";
 export type Units = "F" | "C";
 
-export interface UserPrefs {
+export interface Prefs {
   units: Units;
-  defaultTimeOutside: TimeOutside;
-  defaultRunsTemp: RunsTemp;
+  timeOutsideMinutes: TimeOutsideMinutes;
+  activity: Activity;
+  run: RunTemp;
+  hateSweaty: boolean;
+  comfortOffsetF: number;
 }
 
-export const DEFAULT_PREFS: UserPrefs = {
+export const DEFAULT_PREFS: Prefs = {
   units: "F",
-  defaultTimeOutside: 30,
-  defaultRunsTemp: "neutral",
+  timeOutsideMinutes: 30,
+  activity: "walking",
+  run: "neutral",
+  hateSweaty: false,
+  comfortOffsetF: 0,
 };
 
-// ── Recommendation ──
+// ── Recommendation output ──
 
 export interface Recommendation {
+  effectiveTempF: number;
   base: string;
   mid: string;
   outer: string;
-  extras: string;
+  extras: string[];
   why: string;
-}
-
-export interface ConditionInputs {
-  temp: number; // °F
-  feelsLike: number;
-  windSpeed: number;
-  windGust: number;
-  pop: number;
-  rainIntensity: number; // mm/h
-  snowIntensity: number;
-  isDaytime: boolean;
-}
-
-export interface PrefsInputs {
-  timeOutside: TimeOutside;
-  activity: Activity;
-  runsTemp: RunsTemp;
-  hateSweaty: boolean;
-  comfortOffsetF: number;
 }
 
 // ── Feedback ──
 
 export interface FeedbackEvent {
   timestamp: number;
-  conditions: ConditionInputs;
-  prefs: PrefsInputs;
+  conditions: Conditions;
+  prefs: Prefs;
   recommendation: Recommendation;
   feedback: "too_cold" | "good" | "too_hot";
 }

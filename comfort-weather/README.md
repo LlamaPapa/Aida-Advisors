@@ -5,11 +5,13 @@ A mobile-first PWA that tells you exactly what to wear based on current weather 
 ## Features
 
 - **Clothing recommendation engine** — deterministic rule-based system (no LLM) that outputs a single clothing stack: base layer, mid layer, outer layer, and extras
+- **"Effective temp for you"** — personalized temperature shown on every recommendation
 - **Weather data** — current conditions + 8-hour hourly forecast via OpenWeather One Call 3.0
 - **Personal calibration** — adjusts for activity level, time outside, whether you run hot/cold, and sweat sensitivity
-- **Feedback loop** — "Too cold / Good / Too hot" buttons shift a comfort offset (±2°F per tap, clamped to ±10°F), stored locally
+- **Feedback loop** — "Too cold / Good / Too hot" buttons shift a comfort offset (±2°F per tap, clamped to ±10°F)
+- **Reset learning** — clear offset and feedback history from settings
 - **PWA** — installable on mobile, works offline for cached pages
-- **No accounts** — all preferences stored in localStorage
+- **No accounts** — all preferences stored in localStorage with versioned keys (`cw_prefs_v1`, `cw_feedback_v1`)
 
 ## Setup
 
@@ -39,6 +41,14 @@ Open [http://localhost:3000](http://localhost:3000) on your phone or browser.
 |---|---|---|
 | `OPENWEATHER_API_KEY` | Yes | OpenWeather API key (needs One Call 3.0 subscription) |
 
+### Run Tests
+
+```bash
+npm test
+```
+
+10-case test matrix validates wind scaling, rain logic, activity adjustment, offset learning, and sweat bias.
+
 ### Build for Production
 
 ```bash
@@ -59,22 +69,24 @@ comfort-weather/
 │   │   ├── api/
 │   │   │   ├── weather/route.ts    # Proxies OpenWeather API (keeps key server-side)
 │   │   │   └── geocode/route.ts    # City name → lat/lon lookup
-│   │   ├── settings/page.tsx       # Settings page (units, defaults)
+│   │   ├── settings/page.tsx       # Settings page (units, defaults, reset learning)
 │   │   ├── layout.tsx              # Root layout with PWA metadata
 │   │   ├── globals.css
 │   │   └── page.tsx                # Home page
 │   ├── components/
 │   │   ├── FeedbackButtons.tsx     # Too cold / Good / Too hot
-│   │   ├── LocationSearch.tsx      # Manual city search fallback
-│   │   ├── RecommendationCard.tsx  # 4-row clothing stack display
-│   │   ├── ServiceWorkerRegistrar.tsx
-│   │   └── WeatherStrip.tsx        # 8-hour horizontal forecast
+│   │   ├── HourlyStrip.tsx         # 8-hour horizontal forecast
+│   │   ├── LocationPicker.tsx      # Manual city search fallback
+│   │   ├── PrefsForm.tsx           # Time/activity/run/sweaty controls
+│   │   ├── RecommendationCard.tsx  # 4-row clothing stack + effective temp
+│   │   └── ServiceWorkerRegistrar.tsx
 │   └── lib/
-│       ├── types.ts                # All TypeScript types
+│       ├── types.ts                # All TypeScript types (Conditions, Prefs, Recommendation)
 │       ├── rules.ts                # Deterministic recommendation engine
-│       ├── storage.ts              # localStorage helpers
-│       ├── api.ts                  # Server-side weather fetch (unused in favor of API routes)
-│       └── weather-client.ts       # Client-side API calls
+│       ├── rules.test.ts           # 10-case test matrix
+│       ├── storage.ts              # Versioned localStorage (cw_prefs_v1, cw_feedback_v1)
+│       ├── units.ts                # F/C conversion helpers
+│       └── openweather.ts          # Client-side API calls
 ├── public/
 │   ├── manifest.json               # PWA manifest
 │   ├── sw.js                       # Service worker
@@ -88,14 +100,16 @@ comfort-weather/
 The engine in `src/lib/rules.ts` computes an **effective temperature**:
 
 ```
-effectiveTemp = temp - windPenalty + sunBonus - wetPenalty + comfortOffset + runsAdj + activityAdj
+effectiveTempF = tempF + comfortOffsetF + runHotColdAdjust
+               - windPenaltyF - wetPenaltyF + activityAdjustF
 ```
 
-- **windPenalty**: scales with wind speed and time outside
-- **wetPenalty**: applies when precipitation probability ≥ 35% with intensity, or ≥ 60%
-- **sunBonus**: +3°F during daytime with low wind and no precip
-- **runsAdj**: cold +4°F, hot -4°F
-- **activityAdj**: workout +8°F, walking +3°F
-- **comfortOffset**: learned from user feedback (±2°F per tap)
+- **windPenaltyF**: `clamp((windMph / 3) * (timeOutsideMin / 30), 0, 10)`
+- **wetPenaltyF**: pop >= 0.6 → 6°F, pop >= 0.35 → 3°F
+- **activityAdjustF**: still=0, walking=+2, workout=+8
+- **runHotColdAdjustF**: cold=+4, neutral=0, hot=-4
+- **comfortOffsetF**: learned from feedback (±2°F per tap, clamped ±10°F)
 
-The effective temperature maps to layer thresholds (70°F+ = t-shirt only, down to <20°F = full winter gear). The "hate being sweaty" toggle shifts picks lighter and prefers breathable shells over heavy insulation.
+Layer bands: >=70°F (t-shirt) → 60s → 50s → 40s → 30s → 20s → <20°F (full winter gear).
+
+"Hate being sweaty" nudges lighter near thresholds and prefers shells over heavy insulation.
