@@ -22,8 +22,8 @@ function activityAdjustF(activity: Prefs["activity"]) {
 }
 
 function runHotColdAdjustF(run: Prefs["run"]) {
-  if (run === "cold") return 4;
-  if (run === "hot") return -4;
+  if (run === "cold") return -4;
+  if (run === "hot") return 4;
   return 0;
 }
 

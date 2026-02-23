@@ -84,8 +84,8 @@ describe("getRecommendation", () => {
     const recNeutral = getRecommendation(c, pNeutral);
     const recCold = getRecommendation(c, pCold);
 
-    // Per spec: cold=+4 to effectiveTemp. Skeleton is authoritative.
-    expect(recCold.effectiveTempF).toBeGreaterThan(recNeutral.effectiveTempF);
+    // "I run cold" = I feel cold easily = lower effective temp = heavier clothes
+    expect(recCold.effectiveTempF).toBeLessThan(recNeutral.effectiveTempF);
   });
 
   // 6) Hot runner (runs hot)
@@ -97,8 +97,8 @@ describe("getRecommendation", () => {
     const recNeutral = getRecommendation(c, pNeutral);
     const recHot = getRecommendation(c, pHot);
 
-    // hot => -4 => lower effective temp
-    expect(recHot.effectiveTempF).toBeLessThan(recNeutral.effectiveTempF);
+    // "I run hot" = I overheat easily = higher effective temp = lighter clothes
+    expect(recHot.effectiveTempF).toBeGreaterThan(recNeutral.effectiveTempF);
   });
 
   // 7) Long exposure penalty

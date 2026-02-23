@@ -107,7 +107,7 @@ effectiveTempF = tempF + comfortOffsetF + runHotColdAdjust
 - **windPenaltyF**: `clamp((windMph / 3) * (timeOutsideMin / 30), 0, 10)`
 - **wetPenaltyF**: pop >= 0.6 → 6°F, pop >= 0.35 → 3°F
 - **activityAdjustF**: still=0, walking=+2, workout=+8
-- **runHotColdAdjustF**: cold=+4, neutral=0, hot=-4
+- **runHotColdAdjustF**: cold=-4 (feel cold → dress warmer), neutral=0, hot=+4 (overheat → dress lighter)
 - **comfortOffsetF**: learned from feedback (±2°F per tap, clamped ±10°F)
 
 Layer bands: >=70°F (t-shirt) → 60s → 50s → 40s → 30s → 20s → <20°F (full winter gear).
