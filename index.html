@@ -2,212 +2,892 @@
 <html lang="en">
 <head>
     <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aida Advisors | GTM Architecture & AI Strategy</title>
+    <title>Aida Advisors | Operator-Led AI Consulting for GTM</title>
+    <meta name="description" content="Aida Advisors is an operator-led AI consulting firm for go-to-market teams. We learn how your workflow actually works, then architect systems around your stack, data, and operators.">
+    <meta name="theme-color" content="#0a0b0d">
+    <meta property="og:title" content="Aida Advisors | Operator-Led AI Consulting for GTM">
+    <meta property="og:description" content="We learn how your GTM workflow actually works, then architect systems around your stack, data, and operators.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://aidaadvisors.com/">
+    <meta property="og:image" content="https://aidaadvisors.com/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Aida Advisors | Operator-Led AI Consulting for GTM">
+    <meta name="twitter:description" content="We learn how your GTM workflow actually works, then architect systems around your stack, data, and operators.">
+    <meta name="twitter:image" content="https://aidaadvisors.com/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #0a0908;
-            --text-primary: #e8e6e3;
-            --text-secondary: #9c9a96;
-            --accent: #d4cfc9;
-            --border: #262524;
-            --font-heading: 'Cormorant Garamond', serif;
-            --font-body: 'Inter', sans-serif;
-            --font-tech: 'JetBrains Mono', monospace;
+            --bg: #0a0b0d;
+            --bg-soft: #101216;
+            --panel: rgba(255, 255, 255, 0.04);
+            --panel-strong: rgba(255, 255, 255, 0.06);
+            --line: rgba(255, 255, 255, 0.08);
+            --text: #f5f4ef;
+            --muted: #9ca3ad;
+            --accent: #c9d9ff;
+            --accent-2: #9be4c4;
+            --max-width: 1120px;
+            --radius-xl: 28px;
+            --radius-lg: 22px;
+            --radius-md: 16px;
+            --font-body: "Inter", sans-serif;
+            --font-mono: "IBM Plex Mono", monospace;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            background-color: var(--bg);
-            color: var(--text-primary);
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top, rgba(201, 217, 255, 0.08), transparent 26%),
+                linear-gradient(180deg, #090a0c 0%, #0b0d10 100%);
+            color: var(--text);
             font-family: var(--font-body);
-            line-height: 1.7;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-            padding: 0 5vw;
+            line-height: 1.6;
         }
 
-        .container { max-width: 1100px; margin: 0 auto; }
-        header { padding: 4rem 0; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--border); }
-        .logo { font-family: var(--font-heading); font-weight: 700; font-size: 1.6rem; color: var(--accent); text-transform: lowercase; }
-        .meta { font-family: var(--font-tech); font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.15em; }
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
 
-        .hero { padding: 8rem 0 6rem; }
-        h1 { font-family: var(--font-heading); font-size: clamp(3rem, 8vw, 5.5rem); line-height: 1.05; font-weight: 400; margin-bottom: 2.5rem; color: var(--accent); letter-spacing: -0.02em; }
-        .hero p { font-size: 1.4rem; color: var(--text-secondary); max-width: 600px; font-weight: 300; line-height: 1.5; }
+        .container {
+            width: min(var(--max-width), calc(100% - 40px));
+            margin: 0 auto;
+        }
 
-        section { padding: 8rem 0; border-top: 1px solid var(--border); }
-        .section-label { font-family: var(--font-tech); font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 3rem; display: block; }
-        
-        h2 { font-family: var(--font-heading); font-size: 2.8rem; margin-bottom: 3rem; font-weight: 400; color: var(--accent); }
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background: rgba(10, 11, 13, 0.86);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-        /* THE FRAMEWORK GRID */
-        .method-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; }
-        .method-step h4 { font-family: var(--font-tech); font-size: 0.8rem; margin-bottom: 1rem; color: var(--accent); }
-        .method-step h3 { font-size: 1.2rem; margin-bottom: 1rem; }
-        .method-step p { font-size: 0.9rem; color: var(--text-secondary); }
+        .header-row {
+            min-height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
 
-        /* TRUST / DATA SOVEREIGNTY */
-        .trust-banner { background: #121110; padding: 4rem; border: 1px solid var(--border); }
-        .trust-banner h3 { font-family: var(--font-heading); font-size: 2rem; margin-bottom: 1.5rem; }
-        .trust-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 2rem; }
-        .trust-item strong { display: block; color: var(--accent); margin-bottom: 0.5rem; }
-        .trust-item p { font-size: 0.85rem; color: var(--text-secondary); }
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
 
-        /* CAPABILITIES */
-        .cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
-        .cap-item h3 { font-family: var(--font-heading); font-size: 1.8rem; margin-bottom: 1.5rem; }
-        .cap-item ul { list-style: none; }
-        .cap-item li { margin-bottom: 1rem; color: var(--text-secondary); display: flex; align-items: flex-start; }
-        .cap-item li::before { content: "→"; margin-right: 1rem; color: var(--accent); font-family: var(--font-tech); }
+        .brand-mark {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
 
-        /* FORM */
-        .contact-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
-        input, textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); padding: 1.5rem 0; font-family: var(--font-body); font-size: 1rem; color: var(--text-primary); margin-bottom: 2rem; transition: 0.3s; }
-        input:focus, textarea:focus { outline: none; border-bottom-color: var(--accent); }
-        button { background: var(--accent); color: var(--bg); border: none; padding: 1.2rem 3rem; font-family: var(--font-tech); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 700; cursor: pointer; transition: 0.3s; }
-        button:hover { opacity: 0.85; }
+        .brand-meta,
+        .eyebrow,
+        .section-label,
+        .mini-label {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+        }
 
-        footer { padding: 4rem 0; border-top: 1px solid var(--border); font-family: var(--font-tech); font-size: 0.65rem; color: var(--text-secondary); display: flex; justify-content: space-between; }
+        .brand-meta {
+            color: var(--muted);
+        }
 
-        @media (max-width: 768px) { .cap-grid, .contact-wrap { grid-template-columns: 1fr; } h2 { font-size: 2.2rem; } .trust-banner { padding: 2rem; } }
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .nav a:hover,
+        .nav a:focus-visible {
+            color: var(--text);
+        }
+
+        .nav-cta {
+            min-height: 40px;
+            padding: 0 16px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--panel);
+        }
+
+        .page {
+            padding: 40px 0 72px;
+        }
+
+        section + section {
+            margin-top: 88px;
+        }
+
+        .hero {
+            display: grid;
+            gap: 28px;
+            justify-items: center;
+            text-align: center;
+        }
+
+        .eyebrow,
+        .section-label {
+            color: var(--accent);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .eyebrow::before,
+        .section-label::before {
+            content: "";
+            width: 28px;
+            height: 1px;
+            background: rgba(201, 217, 255, 0.45);
+        }
+
+        .hero-copy {
+            max-width: 760px;
+            display: grid;
+            gap: 18px;
+            justify-items: center;
+        }
+
+        h1,
+        h2,
+        h3 {
+            letter-spacing: -0.05em;
+            text-wrap: balance;
+        }
+
+        h1 {
+            max-width: 11ch;
+            font-size: clamp(3rem, 6.2vw, 5.4rem);
+            line-height: 0.9;
+        }
+
+        h2 {
+            max-width: 12ch;
+            font-size: clamp(2rem, 4vw, 3.1rem);
+            line-height: 0.96;
+        }
+
+        h3 {
+            font-size: 1.22rem;
+            line-height: 1.08;
+        }
+
+        .hero-copy p,
+        .section-intro,
+        .feature p,
+        .positioning p,
+        .contact-card p,
+        .terminal-line,
+        .markdown-body,
+        .ops-list {
+            color: var(--muted);
+        }
+
+        .hero-copy p {
+            max-width: 620px;
+            font-size: 1.05rem;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .button,
+        .button-secondary {
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.94rem;
+            font-weight: 600;
+        }
+
+        .button {
+            background: var(--text);
+            color: #090a0c;
+        }
+
+        .button-secondary {
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--text);
+        }
+
+        .hero-points {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .hero-points span {
+            position: relative;
+            padding-left: 14px;
+        }
+
+        .hero-points span::before,
+        .feature ul li::before,
+        .contact-list li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.58em;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--accent-2);
+        }
+
+        .product-stage {
+            width: 100%;
+            max-width: 980px;
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+        }
+
+        .stage-tabs {
+            display: inline-flex;
+            gap: 8px;
+            padding: 5px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .stage-tab {
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .stage-tab.active {
+            background: var(--panel-strong);
+            color: var(--text);
+        }
+
+        .stage-grid {
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: 1.25fr 1fr;
+            gap: 16px;
+        }
+
+        .terminal,
+        .side-stack > div {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .terminal {
+            padding: 16px;
+            min-height: 340px;
+        }
+
+        .terminal-top,
+        .panel-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .dots {
+            display: inline-flex;
+            gap: 6px;
+        }
+
+        .dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .terminal-body {
+            display: grid;
+            gap: 10px;
+            margin-top: 14px;
+            font-family: var(--font-mono);
+        }
+
+        .terminal-line {
+            font-size: 0.82rem;
+        }
+
+        .terminal-line strong {
+            color: var(--accent-2);
+            font-weight: 500;
+        }
+
+        .side-stack {
+            display: grid;
+            gap: 16px;
+        }
+
+        .side-stack > div {
+            padding: 14px;
+        }
+
+        .markdown-body {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+            font-size: 0.88rem;
+        }
+
+        .markdown-line {
+            height: 11px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .markdown-line.short { width: 64%; }
+        .markdown-line.medium { width: 82%; }
+
+        .ops-body {
+            margin-top: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .ops-list {
+            list-style: none;
+            display: grid;
+            gap: 8px;
+            font-size: 0.86rem;
+        }
+
+        .ops-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .ops-item span:last-child {
+            color: var(--accent);
+        }
+
+        .section-header {
+            max-width: 720px;
+            display: grid;
+            gap: 14px;
+            margin: 0 auto 24px;
+            text-align: center;
+            justify-items: center;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .feature,
+        .positioning,
+        .contact-card,
+        .contact-form {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            background: var(--panel);
+        }
+
+        .stack-band {
+            width: 100%;
+            max-width: 980px;
+            display: grid;
+            gap: 14px;
+            justify-items: center;
+        }
+
+        .stack-title {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .stack-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .stack-chip {
+            min-height: 38px;
+            padding: 0 14px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.025);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .stack-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+        }
+
+        .feature {
+            padding: 20px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .feature ul,
+        .contact-list {
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        .feature ul li,
+        .contact-list li {
+            position: relative;
+            padding-left: 14px;
+            color: var(--muted);
+        }
+
+        .positioning {
+            padding: 22px;
+            max-width: 780px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr);
+            gap: 18px;
+        }
+
+        .contact-card,
+        .contact-form {
+            padding: 20px;
+        }
+
+        .contact-card {
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .contact-form form {
+            display: grid;
+            gap: 16px;
+        }
+
+        label {
+            display: grid;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text);
+            padding: 14px 16px;
+            font: inherit;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: 0;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(201, 217, 255, 0.12);
+        }
+
+        button {
+            min-height: 46px;
+            width: fit-content;
+            padding: 0 18px;
+            border: 0;
+            border-radius: 999px;
+            background: var(--text);
+            color: #090a0c;
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .site-footer {
+            padding: 28px 0 44px;
+        }
+
+        .footer-row {
+            padding-top: 22px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            flex-wrap: wrap;
+            color: var(--muted);
+            font-size: 0.84rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 980px) {
+            .stage-grid,
+            .feature-grid,
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            .container {
+                width: min(calc(100% - 24px), var(--max-width));
+            }
+
+            .site-header {
+                position: static;
+            }
+
+            .header-row,
+            .nav,
+            .hero-actions,
+            .footer-row,
+            .footer-links {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .page {
+                padding-top: 18px;
+            }
+
+            h1,
+            h2 {
+                max-width: none;
+            }
+
+            h1 {
+                max-width: 10ch;
+                font-size: 2.15rem;
+            }
+
+            h2 {
+                font-size: 2.05rem;
+            }
+
+            .hero {
+                justify-items: stretch;
+                text-align: left;
+            }
+
+            .hero-copy {
+                justify-items: start;
+            }
+
+            .hero-points {
+                justify-content: flex-start;
+            }
+
+            .stage-tabs {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stage-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-row {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .workflow-summary {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">aida advisors.</div>
-            <div class="meta">systems design // ai strategy</div>
-        </header>
+    <header class="site-header">
+        <div class="container header-row">
+            <div class="brand">
+                <div class="brand-mark">aida advisors.</div>
+                <div class="brand-meta">gtm systems</div>
+            </div>
+            <nav class="nav" aria-label="Primary">
+                <a href="#work">What We Build</a>
+                <a href="#approach">Approach</a>
+                <a href="#contact">Contact</a>
+                <a class="nav-cta" href="#contact">Book a Working Session</a>
+            </nav>
+        </div>
+    </header>
 
-        <main>
-            <section class="hero" style="border-top: none;">
-                <h1>Revenue is a system.<br>Architect it.</h1>
-                <p>We design high-performance go-to-market technology frameworks and internal automation for revenue organizations.</p>
-            </section>
+    <main class="page container">
+        <section class="hero">
+            <div class="hero-copy">
+                <div class="eyebrow">Founder-led GTM systems design</div>
+                <h1>We architect AI around how your GTM team actually works.</h1>
+                <p>
+                    We learn how your sales motion really runs, where the data is strong or weak, and where reps get
+                    stuck. Then we build AI-assisted systems around your workflow, your stack, and your operators.
+                </p>
+                <div class="hero-actions">
+                    <a class="button" href="#contact">Book a Working Session</a>
+                    <a class="button-secondary" href="#work">What We Build</a>
+                </div>
+                <div class="hero-points" aria-label="Focus areas">
+                    <span>Operator-led consulting</span>
+                    <span>Architected around your workflow</span>
+                    <span>Human-in-the-loop systems</span>
+                </div>
+            </div>
 
-            <section id="methodology">
-                <span class="section-label">01 / The Framework</span>
-                <h2>The Engineering Cycle</h2>
-                <div class="method-grid">
-                    <div class="method-step">
-                        <h4>Phase I</h4>
-                        <h3>Diagnostic Audit</h3>
-                        <p>Mapping existing data flows and identifying structural friction in the revenue funnel.</p>
+            <div class="product-stage" aria-label="Example product view">
+                <div class="stage-tabs">
+                    <div class="stage-tab active">Workflow</div>
+                    <div class="stage-tab">Terminal</div>
+                    <div class="stage-tab">Brief</div>
+                </div>
+
+                <div class="stage-grid">
+                    <div class="terminal">
+                        <div class="terminal-top">
+                            <div class="dots"><span></span><span></span><span></span></div>
+                            <div class="mini-label">System run</div>
+                        </div>
+                        <div class="terminal-body">
+                            <div class="terminal-line"><strong>$</strong> ingest company footprint</div>
+                            <div class="terminal-line">7 new branch signals found</div>
+                            <div class="terminal-line"><strong>$</strong> rank likely decision-makers</div>
+                            <div class="terminal-line">VP Treasury <strong>0.92</strong></div>
+                            <div class="terminal-line">Ops Director <strong>0.81</strong></div>
+                            <div class="terminal-line"><strong>$</strong> map nearby accounts</div>
+                            <div class="terminal-line">14 accounts within 12 miles</div>
+                            <div class="terminal-line"><strong>$</strong> create next actions</div>
+                            <div class="terminal-line">queue outreach brief</div>
+                        </div>
                     </div>
-                    <div class="method-step">
-                        <h4>Phase II</h4>
-                        <h3>Systems Architecture</h3>
-                        <p>Designing custom data pipelines, CRM logic, and LLM-integrated research agents.</p>
-                    </div>
-                    <div class="method-step">
-                        <h4>Phase III</h4>
-                        <h3>Operational Pilot</h3>
-                        <p>Deploying the pilot system with a small group of high-performance operators to prove ROI.</p>
-                    </div>
-                    <div class="method-step">
-                        <h4>Phase IV</h4>
-                        <h3>Hardened Scale</h3>
-                        <p>Full implementation, team enablement, and system hardening for predictable revenue.</p>
+
+                    <div class="side-stack">
+                        <div>
+                            <div class="panel-top">
+                                <div class="mini-label">Markdown brief</div>
+                                <div class="visual-copy">rep-ready</div>
+                            </div>
+                            <div class="markdown-body">
+                                <div class="markdown-line"></div>
+                                <div class="markdown-line medium"></div>
+                                <div class="markdown-line"></div>
+                                <div class="markdown-line short"></div>
+                                <div class="markdown-line"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="panel-top">
+                                <div class="mini-label">Ops view</div>
+                                <div class="visual-copy">next actions</div>
+                            </div>
+                            <div class="ops-body">
+                                <div class="ops-item"><span>Dallas healthcare cluster</span><span>6 accounts</span></div>
+                                <div class="ops-item"><span>Houston banking territory</span><span>4 accounts</span></div>
+                                <div class="ops-item"><span>Nearest customer expansion</span><span>2 miles</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <section id="capabilities">
-                <span class="section-label">02 / Expertise</span>
-                <div class="cap-grid">
-                    <div class="cap-item">
-                        <h3>GTM Design</h3>
-                        <ul>
-                            <li>ICP & Market definition frameworks</li>
-                            <li>Buyer segmentation & Lead routing logic</li>
-                            <li>Operational RevOps visibility</li>
-                            <li>Sales process & Handoff automation</li>
-                        </ul>
-                    </div>
-                    <div class="cap-item">
-                        <h3>Applied AI</h3>
-                        <ul>
-                            <li>Agentic research & scoring workflows</li>
-                            <li>Multi-stage data normalization pipelines</li>
-                            <li>Secure internal AI tooling</li>
-                            <li>Revenue intelligence & Attribution systems</li>
-                        </ul>
-                    </div>
+            <div class="stack-band" aria-label="Tool stack">
+                <div class="stack-title">Architected across the tools your team already uses</div>
+                <div class="stack-grid">
+                    <div class="stack-chip"><span class="stack-icon">C</span>Clay</div>
+                    <div class="stack-chip"><span class="stack-icon">I</span>Instantly</div>
+                    <div class="stack-chip"><span class="stack-icon">S</span>Smartlead</div>
+                    <div class="stack-chip"><span class="stack-icon">H</span>HubSpot</div>
+                    <div class="stack-chip"><span class="stack-icon">SF</span>Salesforce</div>
+                    <div class="stack-chip"><span class="stack-icon">G</span>GPT</div>
+                    <div class="stack-chip"><span class="stack-icon">Cl</span>Claude</div>
+                    <div class="stack-chip"><span class="stack-icon">Cx</span>Codex</div>
                 </div>
-            </section>
-</section> <section id="about">
-            <span class="section-label">03 / Leadership</span>
-            <h2>Built in Practice</h2>
-            <p style="max-width: 700px; color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 1.5rem;">
-                Aida Advisors is led by <strong>Akio Aida</strong>, a go-to-market operator with deep experience building and scaling revenue organizations at high-growth technology companies.
-            </p>
-            <p style="max-width: 700px; color: var(--text-secondary); font-size: 1.05rem; margin-bottom: 1.5rem;">
-                Across multiple venture-backed startups, Akio was an early, founding sales team member, helping companies grow from initial revenue through large-scale outcomes. That work involved manually designing sales processes, qualification frameworks, and revenue operations long before modern AI tooling was widely available.
-            </p>
-            <p style="max-width: 700px; color: var(--text-secondary); font-size: 1.05rem;">
-                Aida Advisors applies those lessons today by helping companies architect scalable, systems-driven go-to-market operations that combine strategy, operational rigor, and applied AI.
-            </p>
+            </div>
         </section>
-          <section id="trust">
-            <span class="section-label">04 / Trust</span>
-            <div class="trust-banner">
-                <h3>The Data Sovereignty Pledge</h3>
-                <div class="trust-grid">
-                        <div class="trust-item">
-                            <strong>Zero Training</strong>
-                            <p>We never train AI models on client data or proprietary processes.</p>
-                        </div>
-                        <div class="trust-item">
-                            <strong>Absolute Privacy</strong>
-                            <p>We do not resell lead data or trade on client insights.</p>
-                        </div>
-                        <div class="trust-item">
-                            <strong>Secure Architecture</strong>
-                            <p>Every system is built to be auditable, secure, and fully owned by you.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
-            <section id="contact">
-                <span class="section-label">05 / Inquiry</span>
-                <div class="contact-wrap">
-                    <div>
-                        <h2>Ready to build?</h2>
-                        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Strategic advisory is offered separately via Bridge City Advisory. Use the form for GTM systems architecture inquiries.</p>
-                    </div>
+        <section id="work">
+            <div class="section-header">
+                <div class="section-label">What We Build</div>
+                <h2>Systems that accelerate the parts of GTM that teams get stuck on.</h2>
+                <p class="section-intro">
+                    Not just Clay. Not just sequences. Not just AI. We build the missing workflow layer that makes the
+                    tools usable.
+                </p>
+            </div>
+
+            <div class="feature-grid">
+                <article class="feature">
+                    <div class="mini-label">Qualification</div>
+                    <h3>Find the right people faster.</h3>
+                    <p>Use company data and public signals to rank who likely owns the problem before reps waste cycles.</p>
+                    <ul>
+                        <li>Role ranking</li>
+                        <li>Account context</li>
+                        <li>Better first actions</li>
+                    </ul>
+                </article>
+
+                <article class="feature">
+                    <div class="mini-label">Coverage</div>
+                    <h3>Expand what the team can work.</h3>
+                    <p>Ingest and clean data so teams can cover more of the market without adding more manual effort.</p>
+                    <ul>
+                        <li>Account discovery</li>
+                        <li>Data cleanup</li>
+                        <li>Targeting support</li>
+                    </ul>
+                </article>
+
+                <article class="feature">
+                    <div class="mini-label">Field motion</div>
+                    <h3>Support reps with local context.</h3>
+                    <p>Use spatial awareness and nearby account intelligence to turn on-site activity into more meetings.</p>
+                    <ul>
+                        <li>Nearby account views</li>
+                        <li>Rep-facing prompts</li>
+                        <li>Local expansion support</li>
+                    </ul>
+                </article>
+            </div>
+        </section>
+
+        <section id="approach">
+            <div class="positioning">
+                <div class="section-label">Approach</div>
+                <h2>Most GTM tools fail because they fit the diagram, not the workload.</h2>
+                <p style="margin-top: 14px;">
+                    Akio Aida was a founding sales rep at four startups, including one that reached a $13B+ valuation.
+                    That matters because teams ignore tools that do not fit how reps actually research, prioritize,
+                    update the CRM, work buying committees, and move deals. We bring the operator context that pure
+                    engineering teams usually miss.
+                </p>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <div class="section-label">Contact</div>
+                    <h2>Book a working session.</h2>
+                    <p>
+                        Best for teams that want AI in GTM workflows in a way that is practical, data-driven, and
+                        built around how operators actually work.
+                    </p>
+                    <ul class="contact-list">
+                        <li>Founder-led and hands-on</li>
+                        <li>Methods shaped by real sales operating experience</li>
+                        <li>Implementation and cleanup support available when teams need it</li>
+                    </ul>
+                </div>
+
+                <div class="contact-form">
                     <form action="https://formspree.io/f/xojjvykw" method="POST">
-                        <input type="hidden" name="_next" value="https://llamapapa.github.io/Aida-Advisors/thanks.html">
                         <label>
-    Name
-    <input type="text" name="name" placeholder="Name" required>
-</label>
-<label>
-    Email
-    <input type="email" name="email" placeholder="email@company.com" required>
-</label>
-<label>
-    Message
-    <textarea name="message" rows="5" placeholder="How can we help?" required></textarea>
-</label>
-<button type="submit">Send Inquiry</button>
+                            Name
+                            <input type="text" name="name" placeholder="Name" required>
+                        </label>
+                        <label>
+                            Email
+                            <input type="email" name="email" placeholder="email@company.com" required>
+                        </label>
+                        <label>
+                            What are you trying to improve?
+                            <textarea name="message" rows="5" placeholder="Tell me about the workflow or GTM problem." required></textarea>
+                        </label>
+                        <button type="submit">Send Inquiry</button>
                     </form>
                 </div>
-            </section>
-        </main>
-        <footer style="padding: 4rem 0; border-top: 1px solid var(--border); font-family: var(--font-tech); font-size: 0.65rem; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;">
-    <div>&copy; 2026 Aida Advisors</div>
-    <div style="display: flex; gap: 2rem;">
-        <a href="privacy.html" style="color: var(--text-secondary); text-decoration: none; text-transform: uppercase; letter-spacing: 0.1em;">Privacy</a>
-        <a href="terms.html" style="color: var(--text-secondary); text-decoration: none; text-transform: uppercase; letter-spacing: 0.1em;">Terms</a>
-    </div>
-    <div>US / Global Support</div>
-</footer>
-    </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer container">
+        <div class="footer-row">
+            <div>&copy; 2026 Aida Advisors</div>
+            <div class="footer-links">
+                <a href="privacy.html">Privacy</a>
+                <a href="terms.html">Terms</a>
+            </div>
+            <div>GTM systems</div>
+        </div>
+    </footer>
 </body>
 </html>

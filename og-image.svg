@@ -1,0 +1,26 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="40" x2="1080" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A0B0D" />
+      <stop offset="1" stop-color="#101216" />
+    </linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C9D9FF" stop-opacity="0" />
+      <stop offset="0.5" stop-color="#C9D9FF" stop-opacity="0.24" />
+      <stop offset="1" stop-color="#C9D9FF" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="32" fill="url(#bg)" />
+  <rect x="32" y="32" width="1136" height="566" rx="24" stroke="rgba(255,255,255,0.08)" />
+  <line x1="80" y1="118.5" x2="1120" y2="118.5" stroke="url(#line)" />
+  <text x="80" y="88" fill="#F5F4EF" font-family="Inter, Arial, sans-serif" font-size="36" font-weight="700">aida advisors.</text>
+  <text x="330" y="88" fill="#9CA3AD" font-family="'IBM Plex Mono', 'Courier New', monospace" font-size="18" letter-spacing="3">GTM SYSTEMS</text>
+  <text x="80" y="214" fill="#C9D9FF" font-family="'IBM Plex Mono', 'Courier New', monospace" font-size="18" letter-spacing="3">OPERATOR-LED AI CONSULTING</text>
+  <text x="80" y="306" fill="#F5F4EF" font-family="Inter, Arial, sans-serif" font-size="82" font-weight="700">We architect AI</text>
+  <text x="80" y="392" fill="#F5F4EF" font-family="Inter, Arial, sans-serif" font-size="82" font-weight="700">around how your GTM</text>
+  <text x="80" y="478" fill="#F5F4EF" font-family="Inter, Arial, sans-serif" font-size="82" font-weight="700">team actually works.</text>
+  <text x="80" y="546" fill="#9CA3AD" font-family="Inter, Arial, sans-serif" font-size="28">Human-in-the-loop systems for real sales workflows.</text>
+  <circle cx="1050" cy="472" r="78" stroke="#C9D9FF" stroke-opacity="0.24" />
+  <circle cx="1050" cy="472" r="52" fill="#101216" stroke="#9BE4C4" stroke-opacity="0.5" />
+  <path d="M1022 492L1048 436L1074 492H1058L1052 476H1044L1038 492H1022Z" fill="#C9D9FF" />
+</svg>

@@ -2,75 +2,145 @@
 <html lang="en">
 <head>
     <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inquiry Received | Aida Advisors</title>
+    <meta name="theme-color" content="#0a0b0d">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-<style>
-    :root {
-        --bg: #0a0908;
-        --text-primary: #e8e6e3;
-        --text-secondary: #9c9a96;
-        --accent: #d4cfc9;
-        --border: #262524;
-        --font-heading: 'Cormorant Garamond', serif;
-        --font-body: 'Inter', sans-serif;
-    }
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0b0d;
+            --panel: rgba(255, 255, 255, 0.04);
+            --line: rgba(255, 255, 255, 0.08);
+            --text: #f5f4ef;
+            --muted: #9ca3ad;
+            --accent: #c9d9ff;
+            --accent-2: #9be4c4;
+            --font-body: "Inter", sans-serif;
+            --font-mono: "IBM Plex Mono", monospace;
+        }
 
-    body {
-        background-color: var(--bg);
-        color: var(--text-primary);
-        font-family: var(--font-body);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        /* Remove the 'background-image' line if your homepage doesn't have the grain/noise texture */
-    }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .container {
-        max-width: 600px;
-        padding: 2rem;
-        text-align: center;
-    }
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top, rgba(201, 217, 255, 0.08), transparent 26%),
+                linear-gradient(180deg, #090a0c 0%, #0b0d10 100%);
+            color: var(--text);
+            font-family: var(--font-body);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+        }
 
-    h1 {
-        font-family: var(--font-heading);
-        font-size: 3rem;
-        color: var(--accent);
-        margin-bottom: 1rem;
-    }
+        a { color: inherit; text-decoration: none; }
 
-    p {
-        color: var(--text-secondary);
-        font-size: 1.1rem;
-        margin-bottom: 2rem;
-    }
+        .site-header {
+            background: rgba(10, 11, 13, 0.86);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
-    .back-link {
-        color: var(--accent);
-        text-decoration: none;
-        font-size: 0.9rem;
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 4px;
-        transition: all 0.3s ease;
-    }
+        .header-row {
+            width: min(1120px, calc(100% - 40px));
+            margin: 0 auto;
+            min-height: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+        }
 
-    .back-link:hover {
-        border-color: var(--accent);
-    }
-</style>
+        .brand { display: flex; align-items: baseline; gap: 10px; }
+        .brand-mark { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.03em; }
+        .brand-meta { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+
+        .page {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+
+        .confirmation {
+            max-width: 520px;
+            text-align: center;
+            display: grid;
+            gap: 16px;
+            justify-items: center;
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--accent);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .eyebrow::before {
+            content: "";
+            width: 28px;
+            height: 1px;
+            background: rgba(201, 217, 255, 0.45);
+        }
+
+        h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            letter-spacing: -0.05em;
+            line-height: 0.95;
+        }
+
+        .confirmation p {
+            color: var(--muted);
+            font-size: 1.05rem;
+            max-width: 420px;
+        }
+
+        .back-button {
+            margin-top: 8px;
+            min-height: 46px;
+            padding: 0 18px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--panel);
+            color: var(--text);
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.94rem;
+            font-weight: 600;
+        }
+        .back-button:hover { background: rgba(255, 255, 255, 0.06); }
+
+        @media (max-width: 720px) {
+            .header-row { flex-direction: column; align-items: flex-start; }
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <span class="status-tag">Transmission Received</span>
-        <h1>Inquiry Logged.</h1>
-        <p>Your systems bottleneck has been noted. We will review your architecture and reach out via the provided email shortly.</p>
-        <a href="index.html" class="back-link">Return to Architecture</a>
-    </div>
+    <header class="site-header">
+        <div class="header-row">
+            <a href="index.html" class="brand">
+                <div class="brand-mark">aida advisors.</div>
+                <div class="brand-meta">gtm systems</div>
+            </a>
+        </div>
+    </header>
+
+    <main class="page">
+        <div class="confirmation">
+            <div class="eyebrow">Inquiry received</div>
+            <h1>Thanks — we'll be in touch.</h1>
+            <p>We'll review what you shared and reach out within one business day.</p>
+            <a href="index.html" class="back-button">Back to home</a>
+        </div>
+    </main>
 </body>
 </html>
