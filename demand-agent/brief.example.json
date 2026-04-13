@@ -1,0 +1,27 @@
+{
+  "goal": "Generate $20,000 in profit within 60 days starting from $100",
+  "budget": 100,
+  "hoursPerWeek": 10,
+  "skills": [
+    "writing",
+    "spreadsheet analysis",
+    "basic design (Canva)"
+  ],
+  "constraints": [
+    "no coding",
+    "keeping a full-time job",
+    "US-based only"
+  ],
+  "channels": [
+    "fiverr",
+    "upwork",
+    "reddit",
+    "tiktok"
+  ],
+  "seedSignals": [
+    {
+      "source": "operator-note",
+      "content": "I've noticed several TikTok videos from small business owners complaining they don't know how to write a SWOT or a basic market analysis. Their comment sections have lots of 'can someone do this for me' replies."
+    }
+  ]
+}
