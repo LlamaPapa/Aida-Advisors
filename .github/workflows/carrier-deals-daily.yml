@@ -1,0 +1,118 @@
+name: Daily T-Mobile Deal Search
+
+on:
+  schedule:
+    # 9:00 AM Eastern Time (UTC-4 EDT / UTC-5 EST)
+    - cron: '0 13 * * *'
+  workflow_dispatch:
+    inputs:
+      post_issue:
+        description: 'Create a GitHub issue with the report'
+        type: boolean
+        default: true
+
+jobs:
+  search-deals:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: carrier-deals/package-lock.json
+
+      - name: Install dependencies
+        working-directory: carrier-deals
+        run: npm ci
+
+      - name: Build
+        working-directory: carrier-deals
+        run: npm run build
+
+      - name: Run deal search
+        working-directory: carrier-deals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
+        run: npm start
+
+      - name: Upload reports as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deal-report-${{ github.run_number }}
+          path: carrier-deals/reports/
+          retention-days: 90
+
+      - name: Post report as GitHub Issue
+        if: ${{ github.event_name == 'schedule' || inputs.post_issue == true }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            const mdFile = `carrier-deals/reports/${today}-deals.md`;
+
+            if (!fs.existsSync(mdFile)) {
+              console.log('No markdown report found, skipping issue creation');
+              return;
+            }
+
+            const reportContent = fs.readFileSync(mdFile, 'utf8');
+            const dateLabel = new Date().toISOString().split('T')[0];
+
+            // Close any existing open deal report issues from today to avoid duplicates
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'carrier-deals',
+              state: 'open',
+            });
+
+            for (const issue of existingIssues.data) {
+              if (issue.title.includes(dateLabel)) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                });
+              }
+            }
+
+            // Ensure the label exists
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'carrier-deals',
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: 'carrier-deals',
+                color: 'E4085C',
+                description: 'Automated daily T-Mobile deal report',
+              });
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📱 T-Mobile Deal Report — ${dateLabel}`,
+              body: reportContent,
+              labels: ['carrier-deals'],
+            });
+
+            console.log(`Created issue for ${dateLabel}`);
